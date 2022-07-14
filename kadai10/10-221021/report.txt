@@ -1,0 +1,287 @@
+レポート10
+05221021 富張聡祥
+
+問1
+動作例
+?- bloodrelative(X,sanae).
+X = sanae ;
+X = sanae ;
+X = kobo ;
+X = kobo ;
+X = miho ;
+X = miho ;
+X = kobo ;
+X = miho ;
+X = iwao ;
+X = mine ;
+false.
+
+?- bloodrelative(kobo,X).
+X = kobo ;
+X = miho ;
+X = kobo ;
+X = miho ;
+X = sanae ;
+X = kobo ;
+X = miho ;
+X = sanae ;
+X = kobo ;
+X = miho ;
+X = koji ;
+X = sanae ;
+X = iwao ;
+X = mine ;
+false.
+
+?- bloodrelative(X,kobo).
+X = kobo ;
+X = kobo ;
+X = sanae ;
+X = sanae ;
+X = miho ;
+X = miho ;
+X = kobo ;
+X = kobo ;
+X = miho ;
+X = miho ;
+X = koji ;
+X = sanae ;
+X = iwao ;
+X = mine ;
+false.
+対称律を満たしている
+
+?- bloodrelative(mine,X).
+X = sanae ;
+X = kobo ;
+X = miho ;
+false.
+一方が他方の祖先となっている場合にも真であると解釈したのでmineと血縁関係にある項が存在する
+
+考察
+講義資料中の述語ancestorを用いて血縁関係を表す述語bloodrelativeを定義した。
+ここで血縁を共通の祖先に加えて一方が他方の祖先となっている場合にも真であると解釈した。
+
+問2
+動作例
+?- mult(s(s(s(z))),s(s(z)),X).
+X = s(s(s(s(s(s(z)))))).
+
+?- mult(s(s(s(z))),X,s(s(s(s(s(s(z))))))).
+X = s(s(z)) ;
+ERROR: Out of global stack
+?- mult(s(s(s(z))),X,s(s(s(s(s(z)))))).
+ERROR: Out of global stack
+第二引数を変数にするとstackのエラーが生じた
+
+?- mult(X,s(s(s(z))),s(s(s(s(s(s(z))))))).
+X = s(s(z)) ;
+^CAction (h for help) ? abort
+% Execution Aborted
+?- mult(X,s(s(s(z))),s(s(s(s(s(z)))))).
+^CAction (h for help) ? abort
+% Execution Aborted
+?- mult(X,z,s(z)).
+^CAction (h for help) ? abort
+% Execution Aborted
+第一引数を変数にすると計算が終わらなかった
+
+?- mult(X,z,z).
+X = z ;
+X = s(z) ;
+X = s(s(z)) ;
+X = s(s(s(z))) ;
+X = s(s(s(s(z)))) ;
+X = s(s(s(s(s(z))))) ;
+X = s(s(s(s(s(s(z)))))) ;
+X = s(s(s(s(s(s(s(z))))))) ;
+X = s(s(s(s(s(s(s(s(z)))))))) ;
+X = s(s(s(s(s(s(s(s(s(z))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) ;
+X = s(s(s(s(s(s(s(s(s(s(...)))))))))) 
+Action (h for help) ? abort
+% Execution Aborted
+
+?- mult(z,X,z).
+true.
+?- mult(z,X,s(z)).
+false.
+
+考察
+講義資料のaddを用いることで三項述語multを定義した。
+第一要素について再帰的に定義することで実装した。
+第一引数、第二引数を変数にするといずれも正しい答えを返した後、計算が止まらなかった。
+しかし第二引数を変数にした場合はOut of global stackというエラーが生じたのに対して第一引数を変数にした場合にはこのようなエラーは発生しなかった。
+zを用いて必ず真となるような問い合わせを行った場合にも第二引数を変数にした場合には答えが限りなく返されたのに対して第一引数を変数にした場合にはtrueが返された。
+このような違いが生じるのは第一引数について再帰的に定義しているためだと考えられるが、詳細な理由は分からなかった。
+
+問3
+動作例
+?- reverse([1,2,3],X).
+X = [3, 2, 1].
+
+?- reverse([1,2,2,1],X).
+X = [1, 2, 2, 1].
+
+?- reverse([1,2,3,4,5,6],X).
+X = [6, 5, 4, 3, 2, 1].
+
+?- reverse([],X).
+X = [].
+
+?- reverse(X,[1,2,3]).
+X = [3, 2, 1] ;
+^CAction (h for help) ? abort
+% Execution Aborted
+
+?- reverse(X,[]).
+X = [] ;
+^CAction (h for help) ? abort
+% Execution Aborted
+第一引数を変数にすると計算が終わらなかった
+
+?- concat([[1],[2,3]],X).
+X = [1, 2, 3].
+
+?- concat([[1],[2,3,4],[5,6,7,8],[9]],X).
+X = [1, 2, 3, 4, 5, 6, 7, 8, 9].
+
+?- concat([],X).
+X = [].
+
+?- concat(X,[1,2,3]).
+X = [[1, 2, 3]] ;
+X = [[1, 2, 3], []] ;
+X = [[1, 2], [3]] ;
+X = [[1], [2, 3]] ;
+X = [[], [1, 2, 3]] ;
+ERROR: Out of global stack
+
+?- concat(X,[]).
+X = [] ;
+X = [[]] ;
+X = [[], []] ;
+ERROR: Out of global stack
+第一引数を変数にするとエラーが生じた
+
+考察
+講義資料のappendを用いて第一引数について再帰的に定義することで二項述語reverse,concatを実装した。
+どちらの関数も第二引数を変数にした場合には計算が終わったが、第一引数を変数にした場合には正しい答えを返した後、計算が止まらなかった。
+このときreverseは計算が終わらなかったのに対し、concatはOut of global stackというエラーが生じた。
+このような挙動となる理由は、どちらも第一引数について再帰的に定義されていることと、concatの第一引数を変数にした場合には無数に答えが存在するためだと考えられたが
+詳細な理由は分からなかった。
+
+問4
+動作例
+ヘルパー述語の動作例
+?- mem(3,[1,2,3,4,5]).
+true ;
+false.
+
+?- mem(X,[1,2,3,4,5]).
+X = 1 ;
+X = 2 ;
+X = 3 ;
+X = 4 ;
+X = 5 ;
+X = 5 ;
+false.
+
+?- remove(3,[1,2,3,4,5],X).
+X = [1, 2, 4, 5] ;
+false.
+
+?- remove(3,X,[1,2,4,5]).
+X = [3, 1, 2, 4, 5] ;
+X = [1, 3, 2, 4, 5] ;
+X = [1, 2, 3, 4, 5] ;
+X = [1, 2, 4, 3, 5] ;
+X = [1, 2, 4, 5, 3] ;
+X = [1, 2, 4, 5, 3] ;
+false.
+
+?- remove(3,[1,2,3,3,4,5],X).
+X = [1, 2, 3, 4, 5] ;
+X = [1, 2, 3, 4, 5] ;
+false.
+
+?- h_sub(1,[2,3],[[1,2],[2,3],[3,1]]).
+true ;
+true ;
+true ;
+true ;
+false.
+
+?- h_sub(2,[1,3],[[1,2],[2,3],[3,1]]).
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+true 
+Action (h for help) ? abort
+
+?- hamilton([1,2,3],[[1,2],[2,3]]).
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+false.
+
+?- hamilton([1,2,3],[[1,2],[2,3],[3,1]]).
+true ;
+true ;
+true ;
+true ;
+true ;
+true ;
+Action (h for help) ? abort
+% Execution Aborted
+trueのときは結果が複数、あるいは無数に返される
+
+?- hamilton([1,2,3,4,5,6],[[1,2],[2,3],[3,1],[3,2],[4,5],[5,6],[6,5]]).
+false.
+
+考察
+項XとリストLを受け取りXがLに含まれる場合にtrueを返す述語mem(X,L)、
+項XとリストU,Vを受け取りUからXを取り除いたリストがVである場合にtrueを返す述語remove(X,U,V)、
+項X,Xが含まれない頂点集合U,辺の集合Eを受け取り有向グラフ(V+{X},E)に始点をXとしたハミルトン路があることを表す述語h_sub(X,V,E)
+をヘルパー述語として定義し、これらの述語を用いることでhamiltonを定義した。
+ここで与えられる頂点集合には重複が無いことを仮定した。
+動作例のように正しい結果が返されることを確認できた。
+ただしhamiltonは結果が偽のときにはただちに答えを返すのに対して真のときには真を複数個あるいは無数に返し続ける。
+これはh_subが同じ挙動を示すことに起因するがその理由は分からなかった。
+
+発展1
+Prologがチューリング完全であることはPrologによって任意のチューリングマシンをシミュレートできることによって示すことができる。
+チューリング機械の状態やテープ記号と空白記号は有限であるためPrologの項として表現することができ、
+Prologのリスト記法を用いることでテープの内容も表現することができる。
+そのためチューリング機械の時点表示を表す論理式をチューリング機械の遷移規則に基づいて定義することにより
+任意のチューリング機械を表すチューリング機械をシミュレートすることができる。
+実際に参考にしたウェブサイトにはチューリング機械をシミュレートしたコードが記載されていた。
+なお調べたところPrologは一階述語論理をホーン節に限定した導出に限定しており、完全性が成り立たたずにチューリング完全となっているという。
+詳細は理解できていないので今後の課題としたい。
+
+参考
+<https://ja.wikibooks.org/wiki/Prolog>:チューリング機械をシミュレートしたコードが記載されていた
+<https://www.wikiwand.com/ja/Prolog#/cite_ref-Prolog-KABA_12-0>:Prologについて詳細に解説されていた
+<https://www.cs.tsukuba.ac.jp/~kam/lecture/logic2015/shiryo1.pdf>:Prologと論理学について解説されていた
