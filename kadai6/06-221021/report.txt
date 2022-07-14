@@ -1,0 +1,209 @@
+課題06
+富張聡祥　05221021
+
+問1
+動作例
+スライドの動作例
+# let f = fun x -> x +x;;           
+val f = <fun>
+# f 1;;
+- = 2
+# let a = 10 in let f = fun x -> x + a in let a = 20 in f 5;;
+- = 15
+# (fun f -> fun x -> f (f x))(fun x -> x + x) 1;;
+- = 4
+関数定義時の環境がクロージャ内に保存されていることを確認できた。
+
+考察
+前回の課題のsyntax.mlからvalue型にVFunとしてクロージャの型を加え関数抽象、適用を扱えるようにした。
+eval.mlについては前回の課題からEFunの評価は引数、評価値、そのときの環境を引数とするVFun型として評価し、
+EAppの評価は一つ目の評価値の評価結果のVFun型に、二つ目の評価値の値を適用させることで評価した。
+その際二つ目の評価値の値はそのときの環境で評価したが、関数適用の際はVFun内の環境で評価するようにした。
+また一つ目の評価値の評価結果がVFun型でない場合はEvalErrを発生させた。
+
+問2
+動作例
+スライドの動作例
+# let rec sum x = if x<1 then 0 else x + sum (x-1);;
+val sum = <fun>
+# sum 10;;
+- = 55
+# let rec fib x = 
+ if x<2 then x else fib(x-1) + fib(x-2) in fib 10;;
+- = 55
+再帰関数が正しく動作することを確認できた。
+
+再帰関数定義時の環境がクロージャ内に保存されることの確認
+# let a = 0 in let rec fib x = if x<2 then x + a else fib(x-1) + fib(x-2) in let a = 10 in fib 10;;
+- = 55
+
+考察
+講義スライドの「クロージャと関数適用を工夫する」方法で再帰関数が扱えるようにインタプリンタを拡張した。
+この方法では再帰関数のクロージャをVRecFunとして通常の関数のクロージャと区別し、
+関数適用のときに引数の情報と関数自身の情報を環境に加えて本体を評価することで再帰関数が実装される。
+またeval.ml内のeval_commandを再帰関数を定義するコマンドを受け取ると、環境に再帰関数の定義を追加するように拡張し、
+inの無い再帰関数の定義にも対応した。
+
+問3
+動作例
+スライドの動作例
+# let rec even x = if x = 0 then true else odd (x-1) and odd x = if x=0 then false else even (x-1);;
+val even = <fun>
+val odd = <fun>
+# even 3;;
+- = false
+# odd 3;;
+- = true
+
+inを含む相互再帰にも対応していることの確認
+# let rec even x = if x=0 then true else odd (x-1) and odd x = if x=0 then false else even (x-1) in odd 3;;
+- = true
+
+クロージャが環境を保存していることの確認
+# let a = 0 in let rec even x = if x=a then true else odd(x-1) and odd x = if x = a then false else even (x-1) in let a = 1 in odd 3;;
+- = true
+
+考察
+講義スライドの方法1に従って以下のように問2のインタプリタを改良し、相互再帰を扱えるようにした。
+syntax.ml:
+type valueのうち再帰関数を表すVRecFunの型をVRecFun of int*((name*name*expr) list)*envと定義し直した。
+
+eval.ml:
+再帰関数の定義時には相互再帰で定義した関数全てをスライドのとおりに環境に束縛し、
+関数の適用時にはクロージャ内の環境に引数の情報と同時に相互再帰した全ての関数を束縛して、返り値を評価するように関数eval_exprとeval_commandを改良した。
+そのために同時に相互再起したリスト内の関数を環境に結びつけるヘルパー関数eval_Rec、eval_CRecDeclを定義した。
+また出力のための関数eval_commandの返り値を「出力のための文字列と値の組のリスト」と環境の組に変更した。
+
+main.ml
+eval_commandの返り値の変更に伴い、出力のための関数read_eval_printを変更した。
+その際、関数read_eval_print内で用いる出力のための補助関数print_ansを定義した。
+
+問4
+動作例
+スライドの動作例
+# let rec sum x = if x<1 then 0 else x + sum (x-1);;
+val sum = <fun>
+# sum 10;;
+- = 55
+# let rec fib x = 
+ if x<2 then x else fib(x-1) + fib(x-2) in fib 10;;
+- = 55
+再帰関数が正しく動作することを確認できた。
+
+再帰関数定義時の環境がクロージャ内に保存されることの確認
+# let a = 0 in let rec fib x = if x<2 then x + a else fib(x-1) + fib(x-2) in let a = 10 in fib 10;;
+- = 55
+
+考察
+講義スライドの「環境を工夫する」方法で再帰関数関数が扱えるようにインタプリンタを拡張した。
+この方法では関数のクロージャを環境の参照を持つように定義し、再帰関数と通常の関数のクロージャは区別しない。
+参照を用いることで再帰関数のクロージャを循環的にすることが可能となり、再帰関数の循環的な定義が可能となっている。
+
+発展1
+動作例
+スライドの動作例
+# let add x y = x + y ;;            
+val add = <fun>
+# (fun f x -> f(f x))(fun x -> add x x ) 1;;
+- = 4
+
+inを含む式にも対応していることの確認
+# let g = (fun f x -> f(f x))(fun x -> add x x ) in g 1;;
+- = 4
+
+考察
+この課題での主な変更点はtype exprのEFunの型をEFun of name list* exprに変更したことである。
+後はparserの動作を変えることで関数定義のための略記法をサポートできた。
+各ファイルごとの変更点は以下。
+
+syntax.ml:
+type exprのEFunの型をEFun of name list* exprに変更した。それに伴い関数print_exprも変更した。
+
+parser.mly:
+変数が複数あることを示す新たな状態varsを加え、Letの定義式に続く変数の数によって分岐させた。
+引数が2つ以上ある関数であることが決定した場合にEFunの型に分岐させることで、他の処理を変更することなく略記法をサポートできた。
+
+eval.ml:
+関数eval_exprの内、EFunの評価のみを変更した。
+なおEFunの引数が空であることはありえないので、その場合の処理にはassert falseを用いた。
+
+発展2
+動作例
+スライドの動作例
+# let rec sum x = if x<1 then 0 else x + sum(x-1);;
+val sum = <fun>
+# sum 10;; 
+- = 55
+# let rec fib x = if x<2 then x else fib(x-1) + fib(x-2) in fib 10;;
+- = 55
+
+再帰関数定義時の環境がクロージャ内に保存されることの確認
+# let a = 0 in let rec fib x = if x<2 then x + a else fib(x-1) + fib(x-2) in let a = 10 in fib 10;;
+- = 55
+
+考察
+問1からの変更点は以下の通り。
+lexer.mll,parser.mly:
+再帰関数の構文を認識するように改良した。
+
+syntax.ml:
+exprにELetRecの型、commandにCRecDeclの型を追加した。
+
+eval.ml:
+eval_expr,eval_commandの定義において引数が再帰関数であった場合、値の再帰的定義を用いて環境を定義することで再帰関数をサポートした。
+新しい環境env'をもとの環境をenvとしてlet rec env' = (f, (VFun(x,e1,env'))) :: envと再帰的に定義することで再帰関数のクロージャが循環的となり、
+再帰関数をサポートできた。
+なお環境を拡張する際に通常用いる関数extendを用いるとエラーが生じてしまい、環境の拡張を明示的にリストの結合として書く必要があった。
+
+以上のように問1からほとんど変更せずに再帰関数をサポートできた。
+
+発展3
+動作例
+スライドの動作例
+# let a = 10;;                      
+val a = 10
+# let f = dfun x -> x + a;;
+val f = <fun>
+# f 10;;
+- = 20
+# let a = 20;;
+val a = 20
+# f 10;;
+- = 30
+
+inを含む式にも対応していることの確認
+# let a = 10 in let f = dfun x -> x + a in let a = 20 in f 10;;
+- = 30
+
+
+考察
+発展1のインタプリタを拡張して動的束縛の関数定義も扱えるようにした。
+変更点は以下の通り。
+lexer.mll,parser.mly,syntax.ml:
+"dfun x -> e"を動的束縛の関数定義として認識するようにし、expr,valueに動的束縛の関数を表す型EDFunとVDFunを定義した。
+これらの型は通常の関数とは異なり環境を引数に取らない。
+
+eval.ml:
+eval_exprを動的束縛の関数定義に合わせて拡張した。
+関数の適用時には評価時の環境を用いて関数を適用するように定義した。
+
+動的束縛を用いた階乗関数factの定義
+# let fact = let fact = dfun n -> n in dfun n -> if n<1 then 1 else n*fact(n-1);;
+val fact = <fun>
+
+動作例
+# fact 5;;
+- = 120
+
+他の再帰関数の定義例
+# let fib = let fib = dfun n->n in dfun n-> if n<2 then n else fib(n-1) + fib(n-2);;
+val fib = <fun>
+# fib 10;;
+- = 55
+
+上のように動的束縛を用いることで特別な構文がなくても再帰関数を定義することができた。
+一般に再帰関数を動的束縛を用いて定義する際には、まず定義したい再帰関数を同じ型の引数を持つ適当な関数としてlet文を用いて定義したあと、
+in以降にその再帰関数の定義を動的束縛を用いた上でlet recによって再帰関数を定義する際と同じように定義すれば良い。
+このように再帰関数を定義すると、再帰関数の適用時の環境には自分自身の名前を持つ関数が記録されているので、再帰関数の定義の中の自分自身の名前を持つ関数は
+自分自身として評価されることになり、再帰的な定義が実現可能となる。
+
