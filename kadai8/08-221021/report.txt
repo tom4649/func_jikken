@@ -1,0 +1,497 @@
+課題08 05221021 富張聡祥
+
+問1
+講義資料の単一化アルゴリズムに従って最汎単一化子を求める。
+
+・{a=int,b=a->a}
+unify({a=int,b=a->a})
+=unify([a=int]{b=a->a})・[a=int]
+=unify({b=int->int})・[a=int]
+=unify([b=int->int]{})・[b=int->int]・[a=int]
+=unify([])・[b=int->int]・[a=int]
+=[]・[b=int->int]・[a=int]
+=[a=int,b=int->int]
+
+・{int=int->a}
+アルゴリズムのケースに当てはまらないので失敗
+
+・{int->int=a->b}
+unify({int->int=a->b})
+=unify({int = a,int =b})
+=unify([a=int]{int =b})・[a=int]
+=unify({int =b})・[a=int]
+=unify([b=int]{})・[b=int]・[a=int]
+=unify({})・[b=int]・[a=int]
+=[]・[b=int]・[a=int]
+=[a=int,b=int]
+
+・{a1->a2=a2->a3,a3=b1->b2}
+unify({a1->a2=a2->a3,a3=b1->b2})
+=unify([a1=a2]{a2=a3,a3=b1->b2})・[a1=a2]
+=unify({a2=a3,a3=b1->b2})・[a1=a2]
+=unify([a2=a3]{a3=b1->b2})・[a2=a3]・[a1=a2]
+=unify([a2=a3]{a3=b1->b2})・[a2=a3]・[a1=a2]
+=unify({a3=b1->b2})・[a1=a3,a2=a3]
+=unify([a3=b1->b2]{})・[a3=b1->b2]・[a1=a3,a2=a3]
+=unify({})・[a1=b1->b2,a2=b1->b2,a3=b1->b2]
+=[]・[a1=b1->b2,a2=b1->b2,a3=b1->b2]
+=[a1=b1->b2,a2=b1->b2,a3=b1->b2]
+
+・{a->a=b->c,c=int->b}
+unify({a->a=b->c,c=int->b})
+=unify({a=b,a=c,c=int->b})
+=unify([a=b]{a=c,c=int->b})・[a=b]
+=unify({b=c,c=int->b})・[a=b]
+=unify([b=c]{c=int->b})・[b=c]・[a=b]
+=unify({c=int->c})・[b=c]・[a=b]
+unify({c=int->c})がアルゴリズムのケースに当てはまらないので失敗
+
+問2
+動作例
+let sub= [(0,TyInt);(1,TyBool);(2,TyVar 3)]
+let t1 = TyFun(TyVar 0,TyVar 1)
+let t2 =TyVar 4
+let t3 = TyFun(TyInt,TyFun(TyBool,TyVar 1))
+と定める。
+utop # ty_subst sub t1;;
+- : ty = TyFun (TyInt, TyBool)
+utop # ty_subst sub t2;;
+- : ty = TyVar 4
+utop # ty_subst sub t3;;
+- : ty = TyFun (TyInt, TyFun (TyBool, TyBool))
+正しく代入が行われていることを確認できた。
+
+考察
+まず通常の変数nameとの衝突を避けるためにtyvarの型をintに定めた。
+そして型代入に引数で渡された型変数の代入後の値を返し、
+型変数が型代入に登録されていなければ例外TyErrorを返す関数lookupを定義し、
+これを用いて講義資料に沿って関数ty_substを再帰関数として実装した。
+
+
+問3
+動作例
+let sub1= [(0,TyInt);(1,TyBool);(2,TyVar 3)]
+let sub2= [(0,TyBool);(4,TyVar 3);(3,TyInt)]
+と定める。
+utop # compose sub2 sub1;;
+- : (tyvar * ty) list =
+[(3, TyInt); (4, TyVar 3); (0, TyInt);
+ (1, TyBool); (2, TyInt)]
+utop # compose sub1 sub2;;
+- : (tyvar * ty) list =
+[(2, TyVar 3); (1, TyBool); (0, TyBool);
+ (4, TyVar 3); (3, TyInt)]
+utop # compose (compose( (compose [0,TyBool] [3,TyVar 0])) [1,TyFun(TyVar 3,TyVar 0)] )[(2,TyBool)];;
+- : (tyvar * ty) list =
+[(1, TyFun (TyBool, TyBool)); (0, TyBool);
+ (3, TyBool); (2, TyBool)]
+代入の合成が正しく行われていることを確認できた。
+
+考察
+関数compose s1 s2を定義するため、ヘルパー関数として関数compose_sub1,関数compose_sub2を定義した。
+関数compose_sub1は代入s2の要素について代入後の型に代入s1を適用して更新する関数である。
+そしてこの関数を用いて代入s2のの値を一部更新した代入tempを定めた。
+関数compose_sub2は与えられた代入のうちtempに含まれていないものを答えの代入に追加していく関数であり、
+これを代入s1に適用してtempにs1の要素の中でtempに含まれていない型変数の代入を追加することによって
+最終的に求める代入を得た。
+
+問4
+動作例
+問1と同じ例
+let c1=[(TyVar 1,TyInt);(TyVar 2,TyFun(TyVar 1,TyVar 1))]
+let c2=[(TyInt,TyFun(TyInt,TyVar 1))]
+let c3=[(TyFun(TyInt,TyInt),TyFun(TyVar 1,TyVar 2))]
+let c4=[(TyFun(TyVar 1,TyVar 2),TyFun(TyVar 2,TyVar 3));(TyVar 3,TyFun(TyVar 4,TyVar 5))]
+let c5=[(TyFun(TyVar 1,TyVar 1),TyFun(TyVar 2,TyVar 3));(TyVar 3,TyFun(TyInt,TyVar 2))]
+と定める。
+utop # unify c1;;
+- : (tyvar * ty) list =
+[(2, TyFun (TyInt, TyInt)); (1, TyInt)]
+utop # unify c2;;
+Exception: TyError.
+utop # unify c3;;
+- : (tyvar * ty) list = [(2, TyInt); (1, TyInt)]
+utop # unify c4;;
+- : (tyvar * ty) list =
+[(2, TyFun (TyVar 4, TyVar 5));
+ (3, TyFun (TyVar 4, TyVar 5));
+ (1, TyFun (TyVar 4, TyVar 5))]
+utop # unify c5;;
+Exception: TyError
+
+いずれも問1で手で求めた最汎単一化子と一致し、正しく動作することを確かめられた。
+
+考察
+まず単一化アルゴリズムのoccur checkを行う関数occur_checkを再帰関数として実装した。
+そしてこの関数を用いて講義資料の単一化アルゴリズムに従って最汎単一化子を求める関数unifyを定義した。
+再帰関数として実装し、ocamlのListモジュールの組み込み関数を用いた。
+単一化が失敗したときには例外TyErrorを発生させるようにした。
+
+問5
+動作例
+関数の動作例
+let t1 = TyFun(TyFun(TyBool,TyVar 0),TyFun(TyFun(TyVar 1,TyVar 2),TyVar 0))
+let t2 = TyFun(TyFun(TyBool,TyVar 0),TyFun(TyFun(TyVar 3,TyVar 5),TyVar 0))
+let t3 = TyFun(TyFun(TyBool,TyVar 1),TyFun(TyFun(TyVar 2,TyVar 3),TyVar 4))
+let sch1 = ([0;1],t1)
+let sch2 = ([0],t2)
+let tenv = [("a1",sch1);("a2",sch2)]
+let sub1= [(0,TyInt);(1,TyBool);(2,TyVar 3)]
+と定める。
+utop # get_type_vars t1;;
+- : tyvar list = [2; 1; 0]
+utop # get_type_vars t2;;
+- : tyvar list = [5; 3; 0]
+
+utop # get_var_fixed sch1;;
+- : tyvar list = [2]
+utop # get_var_fixed sch2;;
+- : tyvar list = [5; 3]
+
+utop # get_var_env tenv;;
+- : tyvar list = [5; 3; 2]
+
+utop # get_var_forall tenv t1;;
+- : tyvar list = [1; 0]
+utop # get_var_forall tenv t2;;
+- : tyvar list = [0]
+utop # get_var_forall tenv t3;;
+- : tyvar list = [4; 1]
+
+utop # generalize tenv t1;;
+- : tyvar list * ty =
+([1; 0],
+ TyFun (TyFun (TyBool, TyVar 0),
+  TyFun (TyFun (TyVar 1, TyVar 2), TyVar 0)))
+utop # generalize tenv t2;;
+- : tyvar list * ty =
+([0],
+ TyFun (TyFun (TyBool, TyVar 0),
+  TyFun (TyFun (TyVar 3, TyVar 5), TyVar 0)))
+utop # generalize tenv t3;;
+- : tyvar list * ty =
+([4; 1],
+ TyFun (TyFun (TyBool, TyVar 1),
+  TyFun (TyFun (TyVar 2, TyVar 3), TyVar 4)))
+
+utop # new_tyvar();;
+- : tyvar = 0
+utop # new_tyvar();;
+- : tyvar = 1
+
+utop # instantiate sch1;;
+- : ty =
+TyFun (TyFun (TyBool, TyVar 23),
+ TyFun (TyFun (TyVar 24, TyVar 2), TyVar 23))
+utop # instantiate sch2;;
+- : ty =
+TyFun (TyFun (TyBool, TyVar 25),
+ TyFun (TyFun (TyVar 3, TyVar 5), TyVar 25))
+
+utop # sub_for_scheme sub1 sch1;;
+- : (tyvar * ty) list = [(2, TyVar 3)]
+utop # sub_for_scheme sub1 sch2;;
+- : (tyvar * ty) list =
+[(2, TyVar 3); (1, TyBool)]
+
+utop # sch_subst sub1 sch1;;
+- : tyvar list * ty =
+([0; 1],
+ TyFun (TyFun (TyBool, TyVar 0),
+  TyFun (TyFun (TyVar 1, TyVar 3), TyVar 0)))
+utop # sch_subst sub1 sch2;;
+- : tyvar list * ty =
+([0],
+ TyFun (TyFun (TyBool, TyVar 0),
+  TyFun (TyFun (TyVar 3, TyVar 5), TyVar 0)))
+
+utop # env_subst sub1 tenv;;
+- : (string * (tyvar list * ty)) list =
+[("a1",
+  ([0; 1],
+   TyFun (TyFun (TyBool, TyVar 0),
+    TyFun (TyFun (TyVar 1, TyVar 3), TyVar 0))));
+ ("a2",
+  ([0],
+   TyFun (TyFun (TyBool, TyVar 0),
+    TyFun (TyFun (TyVar 3, TyVar 5), TyVar 0))))]
+正しく動作していることを確認できた
+
+インタプリタの動作例
+let多相に対応していることの確認(前回のインタプリタではエラーが生じた)
+# let id = fun x -> x;;             
+val id : a0 -> a0 = <fun>
+# if id true then id 1 else id 2;;
+- : int = 1
+let inを含む文の確認
+# let id2 = fun x -> x in if id2 true then id2 1 else id2 2;;
+- : int = 1
+再帰関数を含む文の確認
+# let id2 = fun x -> x in if id2 true then id2 1 else id2 2;;
+- : int = 1
+# let rec id3 x = x         ;;  
+val id3 : a7 -> a7 = <fun>
+# if id3 true then id3 1 else id3 2;;
+- : int = 1
+# let rec id4 x = x in if id4 true then id4 1 else id4 2;;
+- : int = 1
+通常の再帰関数の確認
+# let rec sum x = if x = 0 then 0 else sum (x-1) + x;;
+val sum : int -> int = <fun>
+# sum 10;;
+- : int = 55
+# let rec sum2 x = if x = 0 then 0 else sum2 (x-1) + x in sum2 10;;
+- : int = 55
+関数引数は多相にできないことの確認
+# (fun f -> if f true then f 1 else f 2)id;;
+Syntax Error
+
+京都大学のホームページの例
+# 1+2;;                             
+- : int = 3
+# -2*2;;
+- : int = -4
+# 1<2;;
+- : bool = true
+# fun x ->x;;
+- : (a0 -> a0)= <fun>
+# fun x->fun y -> x;;
+- : (a0 -> (a1 -> a0)) = <fun>
+# fun x -> fun y -> y;;
+-- : (a0 -> (a1 -> a1)) = <fun>
+# (fun x -> x+1) 2 + (fun x -> x+-1)3;;
+- : int = 5
+# fun f -> fun g -> fun x -> g (f x) ;;
+- : ((a2 -> a3) -> ((a3 -> a4) -> (a2 -> a4))) = <fun>
+# fun x -> fun y -> fun z -> x z (y z) ;;
+- : ((a7 -> (a9 -> a10)) -> ((a7 -> a9) -> (a7 -> a10))) = <fun>
+# fun x -> let y = x + 1 in x ;;
+- : (int -> int) = <fun>
+# fun x -> let y = x + 1 in y ;;
+- : (int -> int) = <fun>
+# fun b -> fun x -> if x b then x else (fun x -> b) ;;
+- : (bool -> ((bool -> bool) -> (bool -> bool))) = <fun>
+# fun x -> if true then x else (if x then true else false) ;;
+- : (bool -> bool) = <fun>
+# fun x -> fun y -> if x then x else y ;;
+- : (bool -> (bool -> bool)) = <fun>
+# fun n -> (fun x -> x (fun y -> y)) (fun f -> f n) ;;
+- : (a9 -> a9) = <fun>
+# fun x -> fun y -> x y ;;
+- : ((a11 -> a12) -> (a11 -> a12)) = <fun>
+# fun x -> fun y -> x (y x) ;;
+- : ((a15 -> a16) -> (((a15 -> a16) -> a15) -> a16)) = <fun>
+# fun x -> fun y -> x (y x) (y x) ;;
+- : ((a21 -> (a21 -> a22)) -> (((a21 -> (a21 -> a22)) -> a21) -> a22)) = <fun>
+# fun x -> fun y -> fun z -> x (z x) (y (z x y)) ;;
+- : ((((a29 -> a30) -> a29) -> (a30 -> a31)) -> ((a29 -> a30) -> (((((a29 -> a30) -> a29) -> (a30 -> a31)) -> ((a29 -> a30) -> a29)) -> a31))) = <fun>
+# let id = fun x -> x in let f = fun y -> id (y id) in f ;;
+- : (((a39 -> a39) -> a38) -> a38) = <fun>
+# let k = fun x -> fun y -> x in let k1 = fun x -> fun y -> k (x k) in k1 ;;
+- : (((a54 -> (a53 -> a54)) -> a52) -> (a51 -> (a50 -> a52))) = <fun>
+# let s = fun x -> fun y -> fun z -> x z (y z) in let s1 = fun x -> fun y -> fun z -> x s (z s) (y s (z s)) in s1 ;;
+- : ((((a94 -> (a93 -> a92)) -> ((a94 -> a93) -> (a94 -> a92))) -> (a91 -> (a90 -> a89))) -> ((((a88 -> (a87 -> a86)) -> ((a88 -> a87) -> (a88 -> a86))) -> (a91 -> a90)) -> ((((a85 -> (a84 -> a83)) -> ((a85 -> a84) -> (a85 -> a83))) -> a91) -> a89))) = <fun>
+# let g = fun h -> fun t -> fun f -> fun x -> f h (t f x) in g ;;
+- : (a106 -> (((a106 -> (a105 -> a104)) -> (a103 -> a105)) -> ((a106 -> (a105 -> a104)) -> (a103 -> a104)))) = <fun>
+# let s = fun x -> fun y -> fun z -> x z (y z) in let k = fun x -> fun y -> x in let l = fun x -> fun y -> x in s k l;; 
+- : (a17 -> a17) = <fun>
+# let s = fun x -> fun y -> fun z -> x z (y z) in let k = fun x -> fun y -> x in s k k ;;
+- : (a34 -> a34) = <fun>
+# let s = fun x -> fun y -> fun z -> x z (y z) in let l = fun x -> fun y -> y in s l l;;
+- : (a51 -> (a50 -> a50)) = <fun>
+# fun x -> fun y -> fun z -> let b = x y z in if b then z y else y ;;
+- : ((a54 -> ((a54 -> a54) -> bool)) -> (a54 -> ((a54 -> a54) -> a54))) = <fun>
+# let pair = fun x1 -> fun x2 -> fun y -> y x1 x2 in let proj1 = fun p -> p (fun x1 -> fun x2 -> x1) in let proj2 = fun p -> p (fun x1 -> fun x2 -> x2) in proj1 (pair 1 100) ;;
+- : int = 1
+# let pair = fun x1 -> fun x2 -> fun y -> y x1 x2 in let proj1 = fun p -> p (fun x1 -> fun x2 -> x1) in let proj2 = fun p -> p (fun x1 -> fun x2 -> x2) in proj1 (proj2 (pair 10 (pair 20 30))) ;;
+- : int = 20
+# let f = fun x -> x in if f true then f 1 else f 2 ;;
+- : int = 1
+# let f = fun x -> 3 in f true + f 4;;   
+- : int = 6
+# fun b -> let f = fun x -> x in let g = fun y -> y in if b then f g else g f ;;
+- : (bool -> (a128 -> a128)) = <fun>
+# fun b -> fun f -> let g1 = fun x -> x f in let g2 = fun x -> x f in fun z -> if b then g1 z g2 else g2 z g1;;
+- : (bool -> (a134 -> ((a134 -> (((a134 -> a146) -> a146) -> a147)) -> a147))) = <fun>
+# 1 + true ;;
+Syntax Error
+# 2 + (fun x -> x) ;;
+Syntax Error
+# -2 * false ;;
+Syntax Error
+# fun x -> x x;; ;;
+Syntax Error
+# let f = fun x -> fun g -> g (x x g) in f f ;;
+Syntax Error
+# let g = fun f -> fun x -> f x (f x) in g ;;
+Syntax Error
+# let g = fun f -> fun x -> f x (x f) in g ;;
+Syntax Error
+# fun x -> fun y -> x y + y x ;;
+Syntax Error
+# fun x -> fun y -> x y + x ;;
+Syntax Error
+# fun x -> fun y -> if x y then x else y ;;
+Syntax Error
+# fun x -> fun y -> if x y then (fun z -> if y z then z else x) else (fun x -> x) ;;
+Syntax Error
+# fun x -> fun y -> fun z -> let b = x y z in if b then z y else z x ;;
+Syntax Error
+# fun x -> fun y -> fun z -> if x y then z x else y z ;;
+Syntax Error
+# fun x -> if x then 1 else x ;;
+Syntax Error
+# (fun x -> x + 1) true ;;
+Syntax Error
+# fun x -> fun y -> y (x (y x)) ;;
+Syntax Error
+# (fun f -> fun x -> f (f x)) (fun x -> fun y -> x) ;;
+Syntax Error
+# fun x -> fun y -> y (x (fun z1 -> fun z2 -> z1)) (x (fun z -> z)) ;;
+Syntax Error
+# fun b -> fun f -> let g1 = fun x -> f x in let g2 = fun x -> f x in if b then g1 g2 else g2 g1 ;;
+Syntax Error
+# let rec f x = f in f ;;           
+Syntax Error
+# let rec f x = f x in f ;;
+- : (a6 -> a5) = <fun>
+# let rec f x = f (f x) in f ;;
+- : (a11 -> a11) = <fun>
+# fun f -> let rec x z = f (x z) in x 666 ;;
+- : ((a6 -> a6) -> a6) = <fun>
+# fun f -> fun g -> let rec h x = h (g (f x)) in h ;;
+- : ((a12 -> a11) -> ((a11 -> a12) -> (a12 -> a14))) = <fun>
+# let rec loop f = fun x -> (loop f) (f x) in loop ;;
+- : ((a22 -> a22) -> (a22 -> a21)) = <fun>
+# let rec looq f = fun x -> (looq f) (x f) in looq ;;
+Syntax Error
+# fun x -> let rec f y = x + 1 in x ;;
+- : (int -> int) = <fun>
+# let rec f z = f z (fun g -> fun h -> h (g h)) in f ;;
+Syntax Error
+
+全て正しく動作することを確認できた。
+
+考察
+インタプリタに新しくファイルconstraintSolver.mlを加え、問2から問4で定義した関数に加えて以下のように関数を追加した。
+まず、型スキームを表す型type_schemaをtyvar list*tyと定義し、型環境を表す型type_env を(name * type_schema) listと定義した。
+そして
+get_type_vars:ty -> tyvar list :型に含まれる型変数のリストを返す関数
+get_var_fixed :type_schema -> tyvar list:型スキームの任意でない型変数を返す関数
+get_var_env:type_env -> tyvar list :型環境に含まれる型変数を返す関数
+get_var_forall :type_env-> ty -> tyvar list :型の中で型環境に含まれない型変数のリストを返す関数
+generalize : type_env -> ty -> type_schema :型を型スキームに一般化する関数
+new_tyvar:unit -> tyvar: フレッシュな型変数を返す関数
+instantiate :type_schema -> ty :型スキームの任意の型に新しい型変数を割り当てて型に変換する関数
+sub_for_schema :subst -> type_schema -> subst : 型スキームの任意の型に含まれていない代入を返す関数
+sch_subst : subst -> type_schema -> type_schema :型スキームに代入を適用する関数
+env_subst :subst -> type_env -> type_env :環境に代入を適用する関数
+を順に定義した。関数new_tyvarの実装には参照を用いた。
+その後、型推論を行う関数を定義したcheck.mlを前回のインタプリタから、
+関数infer_expr内のELet,EFun,ELetRecの評価
+関数infer_cmd内のCDecl,CRecDeclの評価
+を講義資料に沿って定義し直した。
+なお、関数の評価時に一時的に環境を拡張する際には引数の型は任意の型が含まれない型スキームとして拡張してある。
+またインタプリタが式を評価した後、推論した型をprintするようにした。
+動作例にあるようにこの実装によってlet多相に対応していることを確認できた。
+
+参考
+<https://www.fos.kuis.kyoto-u.ac.jp/~igarashi/class/isle4-07w/testcases.html> テストケースの参考にした
+
+発展1
+出現検査を行わないと、左辺が型変数で、右辺がその型変数を用いて定義される型が存在することになる。
+この場合、型変数にどんな値を代入しても右辺の型の大きさが左辺の大きさよりも大きくなるため右辺からその型変数を消去して有限の項を用いて表すことができない。
+例えばa=int->aという型の場合、型aをaを用いずに表そうとするとa=int->int->...と無限に項が続いてしまう。
+出現検査をせずに単一化を行うことは定義に自分自身を用いるような型である、再帰型という型を考えていることに相当する。
+再帰型の定義が可能になると表現力が大きくなり、様々なことを表現できるという(空腹関数、ストリーム、不動点コンビネータ)。
+また同値再帰型や同型再帰型という異なる形式があるという。
+しかし詳細は理解できていないので今後の課題としたい。
+
+参考
+型システム入門　プログラミング言語と型の理論　: 再帰型についての説明を参考にした
+<https://ja.wikipedia.org/wiki/%E5%86%8D%E5%B8%B0%E3%83%87%E3%83%BC%E3%82%BF%E5%9E%8B> :再帰型について解説されていた。
+<https://en.wikipedia.org/wiki/Occurs_check> occur checkについて書かれていた。
+
+
+発展2
+動作例
+課題の型推論ができている（出力は省略している）
+# let x = fun x -> (x,x) in         
+let x = fun y -> x(x y) in
+let x = fun y -> x(x y) in
+let x = fun y -> x(x y) in
+let x = fun y -> x(x y) in
+let x = fun y -> x(x y) in
+x(fun x->x);;
+- : pair = <pair>
+
+他の型推論の例（出力あり）
+# (fun x ->x+1, let x = 1 in (fun y -> y+x)4);;
+- : (int -> int)*int = (<fun>,5)
+# let pair = (fun x -> x ,fun y -> y+1);;
+val pair : (a3 -> a3)*(int -> int) = (<fun>,<fun>)
+# (3,8);;
+- : int*int = (3,8)
+# (true,5);;
+- : bool*int = (true,5)
+# ((3,6),false);;
+- : int*int*bool = ((3,6),false)
+# (fun x ->x+1, let x = 1 in (fun y -> y+x)4);;
+- : (int -> int)*int = (<fun>,5)
+# let pair = (fun x -> x ,fun y -> y+1);;
+val pair : (a3 -> a3)*(int -> int) = (<fun>,<fun>)
+
+出力を省略せずに課題の入力を短縮した例
+# let x = fun x -> (x,x) in
+let x = fun y -> x(x y) in
+let x = fun y -> x(x y) in x(fun x->x);;
+- : (a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36)*(a36 -> a36) = ((((<fun>,<fun>),(<fun>,<fun>)),((<fun>,<fun>),(<fun>,<fun>))),(((<fun>,<fun>),(<fun>,<fun>)),((<fun>,<fun>),(<fun>,<fun>))))
+型推論の結果が正しいことを確認できる
+
+考察
+lexer.mll,parser.mly,eval.mlを自然に拡張し組に対応し、組を表す型をTyPair of ty*tyと表して自然に型推論器を拡張すると普通の式の型推論はうまく行ったが課題の型推論は型推論が終わらなかった。
+型推論のうちどの関数の実行が終わっていないのかを調べるとconstraintSolver.mlの関数generalizeで呼び出されるget_type_varsの実行に時間がかかっていることが分かった。
+課題の入力例では組の入れ子の数が膨大になっているため、その中の全ての要素をたどるのに時間がかかっていると考えられた。
+そこで課題の入力例では組の１つ目と２つ目の要素の型が等しいことを利用し、mypair ={id:int;t:ty}と組の要素を表すレコード型を用意し、組を表す型をTyPair of mypair*mypairとすることで
+組の要素が等しいかどうかを組の要素を表すレコード型mypairのint型のidフィールドを比較して調べられるようにした。
+同時にmypairのid用の参照id_refとpair用のレコード型を返す関数get_pairを定めた。
+この実装によってpair型の要素の比較の際にpairの要素自体を比較する必要がなくなり、課題の型推論を実行することができた。
+実装ではフラグprint_pair_flag_typeとprint_pair_flag_valueの値を変えることで型と値の出力をするかどうか切り替えられるようにした。
+ただしこのようにして組の入れ子の型推論の実行時間を短縮できるのは組の１つ目の要素と２つ目の要素が等しい場合のみであり、それ以外の場合には応用できない。
+実行例にあるように課題の型推論を実行できたことと型推論を正しく行えていることを確認できた。
+
+発展3
+要約
+単一化の帰納的な定義はそのままでは構造帰納の定義になっておらず、特に停止することが保証されない。しかし変数の数nを用いたデータ依存型を用いると一階の単一化がこの自然数nに関して構造帰納で定義できることがこの論文で述べられている。
+
+依存データ型とは型の定義にデータの値を用いるような型である。これを用いてn個の変数を持つ型の集合をTerm n,その変数の集合をFin nと表す。Term nの元は構造帰納的に定義される(p 1067)。
+同時にrenamingを表す写像Fin m -> Fin nを代入を表す写像Fin m -> Term nに変換する演算子や代入を型から型への写像Term m -> Term nに変換する演算子を定義でき、代入の同値関係を定義することで後者はモナド則を満たすことが確かめられる(3章)。
+
+単一化では変数の数を減らす必要があり、そのために出現検査が重要である。依存データ型を用いるためには通常の出現検査では不十分で、変数の集合を区別した出現検査を行う必要がある。
+Fin sn(snは通常のn+1を表す)とFin nの元を受け取ってFin snの元を返すような写像thinを定義すると(p 1068)、thinは二つ目の引数に関して単射であり、値域はFin snの元のうち一つ目の引数と異なる元の集合となる。
+一つ目の引数を固定すると単射であることから逆写像が部分関数として定義でき、さらにMaybe型を用いることで全関数に拡張した写像thick x:Fin sn -> Maybe(Fin n)を定義できる。
+これを用いてFin snの元xを固定した時に、Term snの元tを受け取り、tにxが現れる場合noを返し、tにxが現れない場合tのTerm nにおいて対応する型をt’としてyes t’を返すような関数check x:Term sn -> Maybe(Term n)と、
+Term nの型t’を受け取って変数xに適用するとt’となるような代入を返す関数 _ for x : Term n -> (Fin sn -> Term n)を定義できる（4章）。
+
+これらの関数によって変数を消去し代入を合成していくことでFin n、Term nのnの値を小さくしていき自然数nに関して構造帰納的に単一化を行うことができる。単一化の手順を表すために型や関数をさらに定義していく。
+Term mからTerm n(m>=n)に単一化を進めたときに消去した変数を蓄積しておくデータ型AList m nとこのデータを受け取って代入の変換する関数sub :Alist m n -> (Fin m -> Term n)、Alistのデータの合成を行う演算子++:(AList m n)->(Alist l m)-> (Alist l n)を定義する(P1070)。
+ここで二つの型が等しいという制約を解いた際にどこまで変数を消去することができるかわからないが、dependent pairing<,>を利用した存在型を用いたデータ型exists Alistを定義することでこの問題を解消できる。
+以上の定義によって単一化の結果が変わらないことは、単一化しようとしているもとの型の変数の数（つまりTerm nのn）を返す関数targ:(AList ‘ m -> N)とそれに合わせた代入と合成を得るsub’: Alist’ m -> (Fin m -> Tarm (targ _))、++‘: (AList’ (targ _) -> (AList’ m -> AList’ m)を用いて帰納法によって示すことができる(5章)。
+
+これまで定義された関数を用いて二つの型が等しいという制約を解いて最汎単一化子を求める関数mgu: Term m -> Term m-> Maybe(exsists Alist m)とそれを蓄積していく関数amgu:Term m -> Term m-> Maybe(exsists Alist m)-> Maybe(exsists Alist m)を定義できる。
+空集合からそれぞれの制約の解消を蓄積していくことで最汎単一化子が得られるという考え方は「楽観的」とも述べられているが、この考えが正しいことも証明されている。
+amguの作用は単一化する問題をRigid-rigid problems,Flexible problems, Postponed problemsに分類することで定義される。
+またamguによる単一化はまずTerm mのmに関して構造帰納的に行われた後、型に関して構造帰納的に行われるが、必ずしもこの順序で行う必要はない。
+そしてこの単一化による答えが正しいことは証明されており、単一化の「楽観的な」手法の正当性を示している点とデータによって同じ型の出現が表現されている点が従来の単一化の正当性の証明とは異なっている(6章)。
+以上のように依存データ型を用いることで構造帰納的に単一化のアルゴリズムを定義でき、特にアルゴリズムの停止性が自明となった。依存データ型を用いることで単一化のアルゴリズムの構造がより明確に表現されている。
+
+
+感想
+依存データ型を用いることで単一化アルゴリズムの停止性を容易に示すことができる点を興味深いと感じた。
+私は今回初めて依存データ型という型を知ったが、型の表現の仕方や型システムが多様であることを実感した。
+他の型システムを学びたいと思うとともに、今後さらに新しい型システムが提案されていくだろうとも思った。
+また新しい視点や自由度を与えることで既存のものの性質がより明確になることがあるという事実は幅広く他の事象にも応用できそうだと考えた。
+すでに与えられた証明もより簡潔な証明に更新され得るという点も面白いと感じた。
+
+私は情報科学の論文をまともに読んだのは今回が初めてであり、内容を理解することが難しかったが、時間をかけて何度か読み直すことで概要は理解できたと思う。
+今後の学習においても自分が興味を持った内容に関しては積極的に論文を読んでみようと思う。
