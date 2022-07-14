@@ -1,0 +1,411 @@
+課題9レポート
+05221021 富張聡祥
+
+
+問1
+動作例
+# (1,true);;                        
+- :  = (1,true)
+# (let x = 3 in 3*3,fun x -> x * x);;
+- :  = (9,<fun>)
+# [];;
+- :  = []
+# true::false::true::false::[];;
+- :  = true::false::true::false::[]
+# 1::true::3::[];;                  
+- :  = 1::true::3::[]
+（型推論が行われていないことが分かる）
+組型とリスト型の値を扱えること、型推論が実装されていないことを確認できた。
+
+考察
+参考資料のtoi1に適当なeval.mlを与えることで組型とリスト型の値を扱えるようにした。
+EPair,ENil,EConsの評価を追加した。
+型推論が行われていないため要素の型が異なったリストも定義されてしまうことを確認できた。
+
+問2
+# match 3+3 with | 4->true | 6->false;;
+- :  = false
+# match 3+3 with | 4 ->true | x -> false;;
+- :  = false
+# match 3+3 with | 4-> true | _ -> false;;
+- :  = false
+# match 3+3 with | 4 -> 4 | x -> x ;;  
+- :  = 6
+# match 3+3 with | 4 -> 4 | _ ->_;;
+Fatal error: exception Dune__exe__Eval.EvalErr
+(ワイルドパターンと通常の変数で動作が異なることを確認できる)
+
+# match 2 with 3 -> true;;
+Fatal error: exception Dune__exe__Eval.EvalErr
+(パターンが一致しないと評価エラー)
+
+# match 1 with | false -> true | (3,2) -> (fun x -> x) | 1 -> 0;;
+- :  = 0
+（型推論が行われていないことを確認できる）
+
+考察
+参考資料のtoi2に適当なeval.mlを与えることでパターンマッチを扱えるようにした。
+講義資料に従ってEMatchの評価を追加した。
+変数パターンの評価の際にワイルドパターンのときには環境に照合の結果が追加されないことに注意した。
+型推論が行われていないためいい加減な型のパターンマッチも評価されてしまうことを確認できた。
+
+問3
+動作例
+# (1,3);;                           
+- : int*int = (1,3)
+# (1,true);;
+- : int*bool = (1,true)
+# 1::2::3::[];;^[[H
+- : int list = 1::2::3::[]
+# 1::2::true::[];;
+Syntax Error
+(要素の型が異なるリストは型エラーが生じる)
+
+# match 3 with | 4 -> false | 3 -> true;;
+- : bool = true
+# match 3 with | 4 -> 5 | x -> x;;
+- : int = 3
+# match 3 with | 4 -> true| 3 -> 1;;  
+Syntax Error
+# match 3 with | 3 -> true | false -> false;;
+Syntax Error
+#  match 3 with | 4 -> (fun x -> x) | 3 -> (fun x -> x+1);;
+- : (int -> int) = <fun>
+# match 3 with | 4 -> (fun x -> true) | 3 -> (fun x -> x+1);;
+Syntax Error
+(match式の型が不適切なときにはエラーが生じる)
+
+# match 3 with | 4 -> 5 | _ -> 3;;
+- : int = 3
+(ワイルドパターンの型推論も正しい)
+
+考察
+問2のインタプリタに型推論を導入した。
+前回の問5のファイルにパターンマッチ、組、リストの型推論を加えることで実装した。
+
+check.ml
+リストの評価の際には要素の型が一致することを制約に加えた。
+パターンマッチの型推論は講義資料に従って、パターンの型と制約と追加される環境の三つ組を求める関数pattern_to_constを実装し、これを用いることで行った。
+
+constraintSolver.ml
+前回の課題で作った関数にパターンマッチ、組、リストの場合を追加した。
+制約の解決は講義資料のように組とリストの制約の解決を追加した。
+
+問4
+動作例
+# let rec loop x = loop x;;
+val loop : (a2 -> a4) = <fun>
+# let fst = fun x -> (fun y->x);;
+val fst : (a9 -> (a10 -> a9)) = <fun>
+# fst 4 (loop 0);;
+- : int = 4
+同じ入力を前回までの値呼びのインタプリタに入力すると評価結果が帰って来なかったことから、
+名前呼びを実装できていることを確認できた。
+
+再帰関数の動作例
+# let rec fib n = if n<2 then 1 else fib(n-1) + fib(n-2);;
+val fib : (int -> int) = <fun>
+# fib 10;;
+- : int = 89
+再帰関数を正しく実装できていることを確認できた。
+
+評価順序を明示的に出力した例
+# (fun x -> x*x)(2+3);;
+EApp (EFun (x,EMul (x,x)),EAdd (2,3))
+EFun (x,EMul (x,x))
+EMul (x,x)
+x
+EAdd (2,3)
+2
+3
+x
+EAdd (2,3)
+2
+3
+- : int = 25
+
+# fib(1+1);;
+EApp (fib,EAdd (1,1))
+fib
+EFun (n,EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2)))))
+EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2))))
+ELt (n,2)
+n
+EAdd (1,1)
+1
+1
+2
+EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2)))
+EApp (fib,ESub (n,1))
+fib
+EFun (n,EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2)))))
+EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2))))
+ELt (n,2)
+n
+ESub (n,1)
+n
+EAdd (1,1)
+1
+1
+1
+2
+1
+EApp (fib,ESub (n,2))
+fib
+EFun (n,EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2)))))
+EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2))))
+ELt (n,2)
+n
+ESub (n,2)
+n
+EAdd (1,1)
+1
+1
+2
+2
+1
+- : int = 2
+評価順序が正しいこととfibの計算が指数時間かかることを確認できた。
+
+# let x = 3+2 in x*x;;
+ELet (x,EAdd (3,2),EMul (x,x))
+EApp (EFun (x,EMul (x,x)),EAdd (3,2))
+EFun (x,EMul (x,x))
+EMul (x,x)
+x
+EAdd (3,2)
+3
+2
+x
+EAdd (3,2)
+3
+2
+- : int = 25
+let式の評価が同値な関数適用の評価に置き換えられていることを確認できた。
+
+# let rec sum x = if x = 0 then 0 else x + sum(x-1) in sum 1;;
+ELetRec (sum,x,EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1)))),EApp (sum,1))
+EApp (EFun (sum,EApp (sum,1)),sum)
+EFun (sum,EApp (sum,1))
+EApp (sum,1)
+sum
+sum
+EFun (x,EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1)))))
+EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1))))
+EEq (x,0)
+x
+1
+0
+EAdd (x,EApp (sum,ESub (x,1)))
+x
+1
+EApp (sum,ESub (x,1))
+sum
+EFun (x,EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1)))))
+EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1))))
+EEq (x,0)
+x
+ESub (x,1)
+x
+1
+1
+0
+0
+- : int = 1
+let rec式の評価も正しい評価順序で行われていることを確認できた
+
+#  match  1 with 1 -> false;;       
+Fatal error: exception Dune__exe__Parser.MenhirBasics.Error
+パターンマッチはサポートしていない。
+
+考察
+問3のインタプリタを変更、講義資料に従い、サンクを用いることで名前呼びを実装した。
+let in式,let rec in式の評価は評価戦略を変えるときに実装しやすくするため、同値な関数適用の評価に置き換えることで実装した。
+再帰関数は値の再帰的定義を用いて環境が循環的になるように拡張することで実装した。
+各ファイル中のパターンマッチに関する部分はコメントアウトしており、パターンマッチはサポートしていない。
+
+発展1
+動作例
+
+スライドの動作例
+# (fun x -> x*x)(2+3);;
+EApp (EFun (x,EMul (x,x)),EAdd (2,3))
+EFun (x,EMul (x,x))
+EMul (x,x)
+x
+EAdd (2,3)
+2
+3
+x
+- : int = 25
+引数の評価が一度のみで、必要呼びとなっていることを確認できる
+
+# let x = 2 + 3 in let y = x in y*x;;
+ELet (x,EAdd (2,3),ELet (y,x,EMul (y,x)))
+EApp (EFun (x,ELet (y,x,EMul (y,x))),EAdd (2,3))
+EFun (x,ELet (y,x,EMul (y,x)))
+ELet (y,x,EMul (y,x))
+EApp (EFun (y,EMul (y,x)),x)
+EFun (y,EMul (y,x))
+EMul (y,x)
+y
+x
+EAdd (2,3)
+2
+3
+x
+- : int = 25
+この場合も2+3の評価は一度のみ
+
+# (2+3)+(2+3);;                     
+EAdd (EAdd (2,3),EAdd (2,3))
+EAdd (2,3)
+2
+3
+EAdd (2,3)
+2
+3
+- : int = 10
+この場合は2+3を二度評価している
+
+# let rec fib n = if n<2 then 1 else fib(n-1)+fib(n-2);;
+val fib : (int -> int) = <fun>
+# fib (1+1);;
+EApp (fib,EAdd (1,1))
+fib
+EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2))))
+ELt (n,2)
+n
+EAdd (1,1)
+1
+1
+2
+EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2)))
+EApp (fib,ESub (n,1))
+fib
+EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2))))
+ELt (n,2)
+n
+ESub (n,1)
+n
+1
+2
+1
+EApp (fib,ESub (n,2))
+fib
+EIf (ELt (n,2),1,EAdd (EApp (fib,ESub (n,1)),EApp (fib,ESub (n,2))))
+ELt (n,2)
+n
+ESub (n,2)
+n
+2
+2
+1
+- : int = 2
+再帰関数fibの評価では、名前呼びとはことなり引数(1+1)の評価は一度だけだが、
+計算は引数nに関して指数時間となっていることを確認できる。
+
+# let x = 3+2 in x*x；;;
+ELet (x,EAdd (3,2),EMul (x,x))
+EApp (EFun (x,EMul (x,x)),EAdd (3,2))
+EFun (x,EMul (x,x))
+EMul (x,x)
+x
+EAdd (3,2)
+3
+2
+x
+- : int = 25
+let式の評価が同値な関数適用の評価に置き換えられていることを確認できた。
+
+# let rec sum x = if x = 0 then 0 else x + sum(x-1) in sum 1;;
+ELetRec (sum,x,EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1)))),EApp (sum,1))
+EApp (EFun (sum,EApp (sum,1)),sum)
+EFun (sum,EApp (sum,1))
+EApp (sum,1)
+sum
+sum
+EFun (x,EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1)))))
+EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1))))
+EEq (x,0)
+x
+1
+0
+EAdd (x,EApp (sum,ESub (x,1)))
+x
+EApp (sum,ESub (x,1))
+sum
+EIf (EEq (x,0),0,EAdd (x,EApp (sum,ESub (x,1))))
+EEq (x,0)
+x
+ESub (x,1)
+x
+1
+0
+0
+- : int = 1
+let rec式の評価も正しい評価順序で行われていることを確認できた。
+
+考察
+問4のインタプリタを書き換えて評価戦略を必要呼びにした。
+動作例にあるように評価の過程を出力すると式が繰り返し評価されていないことを確認できる。
+名前呼びの動作例と同じ入力例を与えており、比較すると評価戦略の違いがよく分かった。
+問4からの変更点はsyntax.mlのenvの型の定義と
+eval.mlの関数eval_exprのEVar,EApp,ELet,ELetRecの評価、関数eval_commandのCDecl,CRecDeclの評価である。
+問4と同様に再帰関数は値の再帰的定義を用いて環境が循環的になるように拡張することで実装し、
+let in,let rec in式の評価は同値な関数適用の評価に置き換えることで実装した。
+
+発展2
+例外機構を実装した.
+動作例
+# exception Myexception;;
+exception Myexception
+
+# raise Myexception;;
+Exception: Myexception
+
+# raise Yourexception;;
+Eval Error
+未定義の例外を発生させようとするとエラーが発生
+
+# if 1<2 then true else raise Myexception;;
+- : bool = true
+# if 1<2 then true else 1;;
+Syntax Error
+例外に関する型制約はなし
+
+# exception yourexception;;
+exception yourexception
+小文字から始まる例外も定義される
+
+# let f = fun x -> raise Myexception;;
+val f : (a2 -> ()) = <fun>
+例外の型は()と表される
+
+# let g = fun x -> if x = 0 then raise Myexception else 1;;
+val g : (int -> int) = <fun>
+正しく型推論ができている
+
+# let g = fun x -> if x = 0 then 0 else if x = 1 then raise Myexception else true;;
+Syntax Error
+# let g = fun x -> if x = 0 then 0 else if x = 1 then true else raise Myexception;;
+Syntax Error
+正しい型エラーが発生
+
+# f 1;;
+Exception: Myexception
+
+考察
+問3のインタプリタを改良して例外機構を実装した。
+lexerとparserにキーワードexceptionとraiseを表すtoken EXCEPTION RAISE、
+型exprに  ERaise of name、型commandにCExcep of nameそれぞれ追加し、
+eval.mlのeval_exprとeval_commandを適切に定義することによって例外を入力できるようにした。
+型推論については、例外の型をTyExcep of ty refと定義し、さらにこの型で使われるty refの初期値のための型としてDefExcepを定義した。
+そしてconstraintSolver.ml中の関数unifyの型TyExcepに対する処理を格納されている参照がDefExcepであれば新しい型制約と同じ型を参照に代入し、
+DefExcep以外の型の場合は型をその参照の中身の型として型制約を解決する動作を行うように実装した。
+また実装の便宜上DefExcepに対する型制約は無いものとして実装した。
+このように実装することで一度例外式を評価すると適切な型制約が加えられ、正しく型推論を行うことができる。
+なお今回の実装では小文字から始まる例外も定義されてしまうこと、例外の型が()と出力されること、ofのついた例外を定義できないこと
+が本来のOCamlとは異なっているので今後の課題としたい。
+
+
