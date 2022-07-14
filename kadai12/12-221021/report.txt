@@ -1,0 +1,236 @@
+課題12
+05221021　富張聡祥
+
+問1
+規則eq(X,Y):-eq(Y,X).とtrueの命題eq(c,b)からeq(b,c)がtrue。
+よって規則とeq(a,b),eq(b,c)を合わせてeq(a,c)がtrue。
+
+しかしProlog処理系で?-eq(a,c).を問い合わせると
+?- eq(a,c).
+ERROR: Out of local stack
+というエラーが生じる。
+これはeq(a,c).という命題を証明する際に、
+まずProlog処理系は一つ目の規則eq(X,Z):-eq(X,Y),eq(Y,Z).と真の命題eq(a,b)を用いて証明するためにeq(b,c)が新たなゴールとなる。
+この証明の際にも一つ目の規則eq(X,Z):-eq(X,Y),eq(Y,Z)が適用され、新たなゴールが設定され、その証明にも一つ目の規則が適用される、、、
+という動作が繰り返されて、二つ目の規則は適用されないために、eq(b,c)、eq(a,c)は証明されないためである。
+
+処理系の証明の探索を深さ優先探索ではなく幅優先探索にし、二つ目の規則が証明の探索時に適用されるようにすることで
+この差を埋めることができる。
+
+問2
+論理的解釈では、q(X,f(X))を充足する項の組は１つ目と２つ目の値が異なっているため、
+q(X,X)は充足不能で真となりえないので?-test.の問い合わせの結果はfalseとなる。
+
+一方Prolog処理系では
+?- test.
+true.
+
+という結果となった。
+これはProlog処理系ではq(Y,Y)がゴールに設定されると(変数を変えた)、
+真の命題q(X,f(X))の適用が試みられ、Y=f(X)の代入が適用される。
+するとq(f(X),f(X))が新たなゴールとなる。
+再び真の命題q(X,f(X))の適用が試みられるが、ここでProlog処理系では出現検査が行われないために
+X=f(X)の代入が適用されて、q(f(X),f(X))が証明されてしまう。
+まとめるとProlog処理系では出現検査を行わないためにq(f(X),f(X))が証明されてしまうため
+?- test.の問い合わせがtrueとなる。
+
+
+問3
+論理的な解釈ではXにbを代入することで?- \+p(X),q(X).の問い合わせの結果はtrueとなることが期待される。
+しかし実際には
+?- \+p(X),q(X).
+false.
+という結果となった。
+
+これは失敗による否定を変数のある命題に対して適用していることによる。
+つまり\+p(X)が変数が具体化される前に評価されるとp(X)の証明がp(a)の証明により成功してしまい、
+falseと評価されるためである。
+
+そこで問い合わせを順番を入れ替えて?- q(X),\+p(X).として変数が具体化されてから失敗による否定を用いることで
+?- q(X),\+p(X).
+X = b.
+となり論理的解釈とProlog処理系の応答が一致した。
+
+発展1
+
+古典論理の一階述語論理では排中律が成り立つので排中律が成立し、p(a)∨\+p(a)が真。
+よってr(a):-p(a),r(a):-\+p(a)からr(a)も真である。
+
+一方、Prolog処理系ではこの問い合わせに対して
+?- r(a).
+ERROR: Out of global stack
+と答える。
+これはゴールr(a)に対して規則r(a):-p(a).が適用されてp(a)が新たなゴールとなるが、
+この証明のために規則p(X):-p(f(X)).が適用されてp(f(a))が新たなゴールとなり、
+さらに規則p(X):-p(f(X)).が適用されてp(f(f(a)))が新たなゴールとなり、、、、
+という動作が繰り返されるのでERROR: Out of global stackという結果となるためである。
+
+
+発展2（第十一回課題発展1と同一の内容です）
+動作例
+  let f1 = ("male",[Const "kobo"])
+  let f2 = ("male",[Const "koji"])
+  let f3 = ("male",[Const "iwao"])
+  let f4 = ("female",[Const "sanae"])
+  let f5 = ("female",[Const "mine"])
+  let f6 = ("parent",[Const "kobo";Const "koji"])
+  let f7 = ("parent",[Const "kobo";Const "sanae"])
+  let f8 = ("parent",[Const "sanae";Const "iwao"])
+  let f9 = ("parent",[Const "sanae";Const "mine"])
+  let f10 = ("ancestor",[Var 1 ;Var 2 ])
+  let f11 = ("parent",[Var 1 ;Var 2 ])
+  let f12 = ("ancestor",[Var 3 ;Var 5 ])
+  let f13 = ("parent",[Var 3 ;Var 4 ])
+  let f14 = ("ancestor",[Var 4 ;Var 5 ])
+
+  let r1 = ((f1,[]):rule)
+  let r2 = ((f2,[]):rule)
+  let r3 = ((f3,[]):rule)
+  let r4 = ((f4,[]):rule)
+  let r5 = ((f5,[]):rule)
+  let r6 = ((f6,[]):rule)
+  let r7 = ((f7,[]):rule)
+  let r8 = ((f8,[]):rule)
+  let r9 = ((f9,[]):rule)
+  let r10 = ((f10,[f11]):rule)
+  let r11 = ((f12,[f13;f14]):rule)
+  let env = [r1;r2;r3;r4;r5;r6;r7;r8;r9;r10;r11]
+  let er1 = ref env
+スライドに習い、規則を上のように定義する。
+
+utop # bfs [f1] er1;;
+true
+- : unit = ()
+
+utop # bfs [("parent",[Const "kobo" ;Var 100])] er1;;
+100=koji, 
+100=sanae, 
+- : unit = ()
+
+utop # bfs [("ancestor",[Const "kobo" ;Var 100])] er1;;
+（途中省略）
+100=mine, 1=sanae, 2=mine, 4=sanae, 3=kobo, 5=mine, 
+100=mine, 
+100=iwao, 
+100=koji, 
+4=sanae, 100=iwao, 1=sanae, 2=iwao, 3=kobo, 5=iwao, 
+100=mine, 
+100=iwao, 
+100=koji, 
+4=sanae, 100=mine, 1=sanae, 2=mine, 3=kobo, 5=mine, 
+100=mine, 
+100=iwao, 
+100=koji, 
+100=iwao, 4=sanae, 1=sanae, 2=iwao, 3=kobo, 5=iwao, 
+100=mine, 4=sanae, 1=sanae, 2=mine, 3=kobo, 5=mine, 
+100=mine, 
+100=iwao, 
+100=koji, 
+100=koji, 1=kobo, 2=koji, 
+100=sanae, 1=kobo, 2=sanae, 
+100=mine, 
+100=iwao^CInterrupted.
+全ての答えを返すが停止しない
+
+
+チャーチ数の定義
+let f15 =( ("nat" ,[Fun ("s",[Var 6])]):fact)
+let f16 =( ("nat" ,[Var 6]):fact)
+let f17 =( ("nat" ,[Const "z"]):fact)
+let r12 = ((f15,[f16]):rule)
+let r13 = ((f17,[]):rule)
+let env2 =[r12;r13]
+let env3 =[r13;r12]
+let er = ref env2
+let er3= ref env3
+
+
+bfs [("nat",[Var 100])] er
+（途中省略）
+100=s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), 
+100=s(s(s(s(s(s(z, ), ), ), ), ), ), 
+100=s(s(s(s(s(z, ), ), ), ), ), 
+100=s(s(s(s(z, ), ), ), ), 
+100=s(s(s(z, ), ), ), 
+100=s(s(z, ), ), 
+100=s(z, ), 
+100=z, 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), )^C), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+Interrupted.
+
+bfs [("nat",[Var 100])] er3
+（途中省略）
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ^C
+Interrupted.
+規則の順番によらず全ての答えを返すが停止しない
+
+
+第12回スライドの例
+let f18 =( ("add" ,[Const "z";Var 7;Var 7]):fact)
+let f19 =( ("add" ,[Fun ("s" ,[Var 9]);Var 10;Fun ("s" ,[Var 11])]):fact)
+let f20 =( ("add" ,[Var 9;Var 10;Var 11]):fact)
+let r14 = ((f18,[]):rule)
+let r15 = ((f19,[f20]):rule)
+
+let r16 = (( ("p",[]),[("add" ,[Fun ("s" ,[Const "z"]);Var 13;Var 13])]):rule)
+let env4 = [r14;r15;r16]
+let er4 = ref env4
+と定義
+
+utop # let _ =bfs [("p",[])] er4;;
+- : unit = ()
+出現検査を行っているため、正しくfalseという結果となる
+
+いずれの動作例も期待通りの結果が返された
+
+考察
+Ocamlを用いてProlog ライクな論理型言語を実装した。
+今回実装ではSEI-Prologとは異なり、幅優先探索をし、単一化で出現検査をしている。
+そのためプログラムの停止性は保証されないが、論理的に正しい全ての答えを返すことが保証される。
+実装は以下の通り
+
+型の定義：
+type var = int :変数の型
+type const = string　：定数の型
+type term = |Const of const | Var of var|Any(*ワイルドカード*) | List of term list|Fun of string*(term list)(*functor 名,複合項*)
+：項の型
+type fact = string*(term list)(*述語名,項*)：述語の型
+type rule = fact*(fact list)(*結論,前提*)：規則の型
+
+例外：　UError
+
+実装した関数：
+lookup_var a l：代入lから変数aに関する代入を見つける
+subst sub a：代入subと項aを受け取ってsubをaに適用
+occur_check a t：項tに変数aが現れるか検査する
+make_const l1 l2：項のリストl1,l2を受け取って成分ごとに等しいという制約を生成する
+compose s1 s2：二つの代入s1,s2を合成
+unify const：制約のmguを返す
+app_rule fact renv ：述語factを規則の集合renvの元で証明するのに必要な制約と述語を返す
+sub_fact sub (p,tl)：述語(p,tl)に代入subを適用
+make_newgoals (goals,ss) env：証明したい述語の集合と代入(goals,ss)と規則envの集合を受け取って示すべき述語の集合と代入を返す
+print_term t：項tを出力
+print_sub sub：代入subを出力
+print_fact (s,tl):fact (s,tl)を出力
+print_rule (f,fl);規則(f,fl)を出力
+goal_to_q goals q：キューq、述語と代入の組goalsの処理を行う
+add_fact goals orig env q:goalsのうち前提なしに成り立つゴールを環境envに追加し、新たな環境のもとで問い合わせのゴールorigをキューqに加える
+bfs facts env：bfsによって問い合わせfactsを処理
+getnewvar ()：新しい変数を返す
+
+実装の概略：
+ゴールと代入の組をキューに加えて、先頭の要素から今の環境（規則の集合）のもとで示すべき新たなゴールと代入を作り、キューに加える動作を繰り返すことで
+幅優先探索を実装した。
+規則の集合にない述語が証明された場合には、その述語を環境に加え、その環境の元でもう一度問い合わせのゴールの証明を試みるようにした。
+環境は更新する必要があるので規則の集合の参照として実装した。
+キューの実装はOcamlのQueueモジュールを用いて実装した。
+関数bfsに規則の集合env、示したい述語の集合factsを与えると真の場合には代入または空の代入を表すtrueを返す。
+変数の割当を見ることができるように問い合わせには含まれない、規則に含まれる変数の代入も出力される仕様にした。
+また代入なしに成り立つ場合にはtrueが返され、falseの場合には何も返されない。
+
+動作例のように試した限りでは期待した通りの結果が出力された。
