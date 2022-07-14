@@ -1,0 +1,187 @@
+課題０２
+富張聡祥　05221021
+
+問１
+動作例
+i2n:
+utop # i2n 5;;
+- : nat =
+S (S (S (S (S Z))))
+utop # i2n (-1);;(*負の場合はZを返す*)
+- : nat = Z
+n2i:
+utop # n2i (i2n 5);;
+- : int = 5
+utop # n2i Z;;
+- : int = 0
+add:
+utop # n2i (add (i2n 8) (i2n 5));;
+- : int = 13
+utop # n2i (add Z (i2n 5));;
+- : int = 5
+sub:
+utop # n2i (sub (i2n 8) (i2n 5));;
+- : int = 3
+utop # n2i (sub Z (i2n 5));;(*引き算の結果が負の場合は0を返す*)
+- : int = 0
+mul:
+utop # n2i (mul (i2n 8) (i2n 5));;
+- : int = 40
+utop # n2i (mul (i2n 5) Z);;
+- : int = 0
+utop # n2i (sub Z (i2n 5));;
+- : int = 0
+pow:
+utop # n2i (pow (i2n 2) (i2n 5));;
+- : int = 32
+utop # n2i (pow Z (i2n 5));;
+- : int = 0
+utop # n2i (pow Z Z);;(*0の0乗は1*)
+- : int = 1
+
+考察
+いずれの関数も再帰関数を用いることで実装できた。
+なお、関数subは減算の結果が符の値となるとき0を返すようにし、関数i2nも負の整数を与えるとZを返すように実装した。
+また0の0乗は1となるように実装した。
+
+問２
+動作例
+utop # let tree = Node(6,Node(7,Node(3,Node(8,Leaf,Leaf),Leaf),Node(4,Node(2,Leaf,Leaf),Leaf)),Node(1,Node(6,Leaf,Leaf),Node(5,Leaf,Leaf)));;
+val tree : int tree =
+  Node (6,
+   Node (7,
+    Node (3, Node (8, Leaf, Leaf), Leaf),
+    Node (4, Node (2, Leaf, Leaf), Leaf)),
+   Node (1, Node (6, Leaf, Leaf),
+    Node (5, Leaf, Leaf)))
+
+正しい順序で探索していることを下のように確認できた。
+utop # pre_order tree;;
+- : int list = [6; 7; 3; 8; 4; 2; 1; 6; 5]
+utop # in_order tree;;
+- : int list = [8; 3; 7; 2; 4; 6; 6; 1; 5]
+utop # post_order tree;;
+- : int list = [8; 3; 2; 4; 7; 6; 5; 1; 6]
+
+考察
+再帰関数を用いることで、思ったよりも容易に実装できた。
+リストに加える順序は、リストの結合順序を変えるだけで実装できた。
+
+問３
+動作例
+utop # let tree = Node(6,Node(7,Node(3,Node(8,Leaf,Leaf),Leaf),Node(4,Node(2,Leaf,Leaf),Leaf)),Node(1,Node(6,Leaf,Leaf),Node(5,Leaf,Leaf)));;
+val tree : int tree =
+  Node (6,
+   Node (7,
+    Node (3, Node (8, Leaf, Leaf), Leaf),
+    Node (4, Node (2, Leaf, Leaf), Leaf)),
+   Node (1, Node (6, Leaf, Leaf),
+    Node (5, Leaf, Leaf)))
+utop # level_order tree;;
+- : int list = [6; 7; 1; 3; 4; 6; 5; 8; 2]
+utop # level_order' tree;;
+- : int list = [6; 7; 1; 3; 4; 6; 5; 8; 2]
+
+考察
+listをqueueの代わりに用いることで幅優先探索を実装した。
+はじめ、listを一から自分で実装して関数を作ったが、その後組み込みのリストを用いれば良いことに気づいた。
+listを自分で実装したときにはtype 'a mlistを'aと'a mlistへの参照の組として定めることで実装した。
+せっかくなので自分で作ったlistを用いて実装した関数level_order_tree'も残しておく。
+
+問４、５
+動作例
+let exp1 = EMul(EAdd(EConstInt(3),EConstInt(7)),EDiv(EConstInt(4),EConstInt(2)));;
+let exp2 = EEqual(EConstInt(3),EConstInt(5));;
+let exp3 = ELT(EConstInt(3),EConstInt(5));;
+let exp4 = EIF(exp3,exp1,exp2);;
+let exp5 = ELT(EConstBool(true),EConstInt(4));;
+let exp6 = EDiv(EConstInt(4),EConstInt(0));;
+と定める。
+utop # eval exp1;;
+- : value = VInt 20
+utop # eval exp2;;
+- : value = VBool false
+utop # eval exp3;;
+- : value = VBool true
+utop # eval exp4;;
+- : value = VInt 20
+utop # eval exp5;;
+Exception: Eval_error.
+utop # eval exp6;;
+Exception: Division_by_zero.
+
+考察
+Eの構文を丁寧に追い、抽象構文器に対応するexprを定義し、それを評価するevalを実装した。
+実行例の通り正しく式を評価することができた。
+なお、0で割る操作に対応する式を評価する際、Division_by_zeroの例外を考慮しないで実装すると、エラー処理が行われなかったので、
+その場合の例外処理を明示的に行った。
+
+発展１
+動作例
+前回の問３でfixを用いて作った関数が今回の課題で再帰関数を使わずに書いたfixを用いても書けることを確認した。
+utop # let fix f x = 
+  let  l = ref [] in 
+  let ans = fun g y -> 
+    match !l with 
+    |h::_ -> g (h g) y 
+    | _ -> assert false(*絶対に発生しない*)in
+  l:=[ans]; ans f x;;
+val fix : (('a -> 'b) -> 'a -> 'b) -> 'a -> 'b = <fun>
+
+前回の課題で作った関数（出力は一部省略した）
+utop # let is_prime_fix n = 
+  if n=1 then false
+  else sub_prime_fix (n,n-1);;
+val is_prime_fix : int -> bool = <fun>
+utop # let gcd_fix a b = gcd_fix_sub (a,b);;
+val gcd_fix : int -> int -> int = <fun>
+
+これらの関数が正しく動くこと
+utop # is_prime_fix 5;;
+- : bool = true
+utop # gcd_fix 36 45;;
+- : int = 9
+
+考察
+再帰的に定義したい関数fixを、let recを使わずに参照に格納することで書いた。
+返り値と型を合わせるために参照の初期値を空リストにした。
+なおmatch式で絶対に発生しない場合の処理にはassert falseを用いた。
+実行例にあるように前回の課題でfixを用いて作った関数が今回作ったfixでも書けることを確認できた。
+
+発展２
+実行例
+val prop1 : ('a -> 'b) -> ('b -> 'c) -> 'a -> 'c = <fun>
+val prop2 : ('a, ('b, 'c) and_t) or_t -> ('a, 'b) or_t * ('a, 'c) or_t =
+  <fun>
+val prop3 : ('a, 'b) or_t * ('a, 'c) or_t -> ('a, ('b, 'c) and_t) or_t =
+  <fun>
+val prop_cc4 : ('a -> 'b) -> (('a -> false_t) -> 'b) -> 'b = <fun>
+val prop_cc6 : (('a -> 'b) -> 'a) -> 'a = <fun>
+
+考察
+論理式とプログラミングにおける型にはカーリーハワード同型という対応関係があり、OCamlの型付きラムダ計算は直観主義論理の自然演繹と対応している。
+また、call/ccを型付ラムダ計算に加えると、古典論理に対応する。
+したがって直観主義論理で証明可能な論理式に対応する1,2,3はcall/ccを加えずに式を書くことができ、
+古典論理に拡張して初めて証明可能な4,6はcall/ccを加えて初めて式を書くことができる。
+古典論理でも証明できない論理式に対応する5についてはcall/ccを加えても証明することができない。
+
+参考
+前期教養学部講義　記号論理学　講義資料:命題論理と古典論理について理解し直した。
+http://www2.sf.ecei.tohoku.ac.jp/~kztk/teaching/2016/logic/w6.pdf :カーリーハワード同型について参考にした
+http://pllab.is.ocha.ac.jp/~asai/jpapers/ppl/ueda10.pdf :型付ラムダ計算と論理学の対応について参考にした
+
+発展３
+動作例
+utop # h f;;
+- : string = "original function"
+utop # h (curry (uncurry f));;
+- : string = "curried uncurried function"
+考察
+数学的には（副作用を考慮しなければ）関数fとcurry(uncurry f)は等しいが、
+副作用を考慮すると同じ返り値を返すとは限らない（外延的に等しいと言うらしい）。
+ここでは関数fを「引数を２つ受け取ってunitを返す関数で、1つの引数を受け取ると（オリジナルの）例外を発生させる関数」と定義し、
+関数hを「関数fを受け取って、fに1つの数字（ここでは0）を適用する関数で、文字列を返し例外の補捉を行う関数」と定義した。
+すると、関数hにそのままfを適用させた場合にはfが一つの引数を受け取った時点で例外が発生し、例外の捕捉が行われる。
+一方でhにcurry(uncurry f)を適用させると、関数curryは２つの引数を受け取って初めてuncurry fに値の組を適用するので、
+curry(uncurry f)に一つの値を適用させても例外は発生せず、例外の捕捉は行われない。
+このようにしてh fと h curry(uncurry f)が違う値を返すようにhとfを作ることができた。

@@ -1,0 +1,114 @@
+課題０２
+富張聡祥　05221021
+
+問１
+動作例
+i2n:
+utop # i2n 5;;
+- : nat =
+S (S (S (S (S Z))))
+utop # i2n (-1);;
+- : nat = Z
+n2i:
+utop # n2i (i2n 5);;
+- : int = 5
+utop # n2i Z;;
+- : int = 0
+add:
+utop # n2i (add (i2n 8) (i2n 5));;
+- : int = 13
+utop # n2i (add Z (i2n 5));;
+- : int = 5
+sub:
+utop # n2i (sub (i2n 8) (i2n 5));;
+- : int = 3
+utop # n2i (sub Z (i2n 5));;
+- : int = 0
+mul:
+utop # n2i (mul (i2n 8) (i2n 5));;
+- : int = 40
+utop # n2i (mul (i2n 5) Z);;
+- : int = 0
+utop # n2i (sub Z (i2n 5));;
+- : int = 0
+pow:
+utop # n2i (pow (i2n 2) (i2n 5));;
+- : int = 32
+utop # n2i (pow Z (i2n 5));;
+- : int = 0
+utop # n2i (pow Z Z);;
+- : int = 1
+
+考察
+いずれの関数も再帰関数を用いることで実装できた。
+なお、関数subは減算の結果が符の値となるとき0を返すようにし、関数i2nも負の整数を与えると0を返すように実装した。
+また0の0乗は1となるように実装した。
+
+問２
+動作例
+utop # let tree = Node(6,Node(7,Node(3,Node(8,Leaf,Leaf),Leaf),Node(4,Node(2,Leaf,Leaf),Leaf)),Node(1,Node(6,Leaf,Leaf),Node(5,Leaf,Leaf)));;
+val tree : int tree =
+  Node (6,
+   Node (7,
+    Node (3, Node (8, Leaf, Leaf), Leaf),
+    Node (4, Node (2, Leaf, Leaf), Leaf)),
+   Node (1, Node (6, Leaf, Leaf),
+    Node (5, Leaf, Leaf)))
+utop # pre_order tree;;
+- : int list = [6; 7; 3; 8; 4; 2; 1; 6; 5]
+utop # in_order tree;;
+- : int list = [8; 3; 7; 2; 4; 6; 6; 1; 5]
+utop # post_order tree;;
+- : int list = [8; 3; 2; 4; 7; 6; 5; 1; 6]
+
+考察
+再帰関数を用いることで、思ったよりも容易に実装できた。
+リストに加える順序は、リストの結合順序を変えるだけで実装できた。
+
+問３
+動作例
+utop # let tree = Node(6,Node(7,Node(3,Node(8,Leaf,Leaf),Leaf),Node(4,Node(2,Leaf,Leaf),Leaf)),Node(1,Node(6,Leaf,Leaf),Node(5,Leaf,Leaf)));;
+val tree : int tree =
+  Node (6,
+   Node (7,
+    Node (3, Node (8, Leaf, Leaf), Leaf),
+    Node (4, Node (2, Leaf, Leaf), Leaf)),
+   Node (1, Node (6, Leaf, Leaf),
+    Node (5, Leaf, Leaf)))
+utop # level_order tree;;
+- : int list = [6; 7; 1; 3; 4; 6; 5; 8; 2]
+utop # level_order' tree;;
+- : int list = [6; 7; 1; 3; 4; 6; 5; 8; 2]
+
+考察
+listをqueueの代わりに用いることで幅優先探索を実装した。
+はじめ、listを一から自分で実装して関数を作ったが、その後組み込みのリストを用いれば良いことに気づいた。
+listを自分で実装したときにはtype 'a mlistを'aと'a mlistへの参照の組として定めることで実装した。
+せっかくなので自分で作ったlistを用いて実装した関数level_order_tree'も残しておく。
+
+問４、５
+動作例
+let exp1 = EMul(EAdd(EConstInt(3),EConstInt(7)),EDiv(EConstInt(4),EConstInt(2)));;
+let exp2 = EEqual(EConstInt(3),EConstInt(5));;
+let exp3 = ELT(EConstInt(3),EConstInt(5));;
+let exp4 = EIF(exp3,exp1,exp2);;
+let exp5 = ELT(EConstBool(true),EConstInt(4));;
+let exp6 = EDiv(EConstInt(4),EConstInt(0));;
+と定める。
+utop # eval exp1;;
+- : value = VInt 20
+utop # eval exp2;;
+- : value = VBool false
+utop # eval exp3;;
+- : value = VBool true
+utop # eval exp4;;
+- : value = VInt 20
+utop # eval exp5;;
+Exception: Eval_error.
+utop # eval exp6;;
+Exception: Division_by_zero.
+
+考察
+Eの構文を丁寧に追い、抽象構文器に対応するexprを定義し、それを評価するevalを実装した。
+実行例の通り正しく式を評価することができた。
+なお、0で割る操作に対応する式を評価する際、Division_by_zeroの例外を考慮しないで実装すると、エラー処理が行われなかったので、その場合の例外処理を明示的に行った。
