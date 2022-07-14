@@ -1,0 +1,279 @@
+課題０４
+富張聡祥　05221021
+
+問1
+実行例
+スライドと同じ動作をすることを確認できた。
+utop # lookupDiv "x" "y" table;;
+- : int result = Error "Divison by zero"
+utop # lookupDiv "x" "z" table;;
+- : int result = Ok 3
+utop # lookupDiv "x" "b" table;;
+- : int result = Error "Not found"
+utop # lookupDiv "a" "z" table;;
+- : int result = Error "Not found"
+
+考察
+eLookupを定義することで例外を発生しないようにし、適切に演算子>>=を定めることによってlookupDivを実装した。
+
+問2
+実行例
+utop # let fukumen1 =
+  let f ba na si mo nn = (ba*100+na*11)*2=si*1000+na*100+mo*10+nn in
+  [0;1;2;3;4;5;6;7;8;9] >>= (fun ba ->
+  [0;1;2;3;4;5;6;7;8;9] >>= (fun na ->
+  [0;1;2;3;4;5;6;7;8;9] >>= (fun si -> 
+  [0;1;2;3;4;5;6;7;8;9] >>= (fun mo ->
+  [0;1;2;3;4;5;6;7;8;9] >>= (fun nn ->
+    guard(f ba na si mo nn) >>= (fun _ ->
+      return (ba,na,si,mo,nn)))))));;
+val fukumen1 : (int * int * int * int * int) m =
+  [(0, 0, 0, 0, 0); (1, 2, 0, 4, 4);
+   (2, 4, 0, 8, 8); (2, 5, 0, 1, 0);
+   (3, 7, 0, 5, 4); (4, 9, 0, 9, 8);
+   (5, 0, 1, 0, 0); (6, 2, 1, 4, 4);
+   (7, 4, 1, 8, 8); (7, 5, 1, 1, 0);
+   (8, 7, 1, 5, 4); (9, 9, 1, 9, 8)]
+
+utop # let fukumenn2 =
+    let f s e n d m o r y = (s*1000+e*100+n*10+d)+(m*1000+o*100+r*10+e)=(m*10000+o*1000+n*100+e*10+y )in
+    let myguard b = if b then [] else [0;1;2;3;4;5;6;7;8;9] in(*略記のための関数myguard*)
+    [1;2;3;4;5;6;7;8;9] >>= (fun s ->
+    [1;2;3;4;5;6;7;8;9] >>= (fun m ->
+    myguard(s=m || s+m > 10*m+9) >>= (fun o -> 
+    myguard(s=o || m=o || s+m>(m*10+o))>>= (fun e ->
+    myguard(s=e || m=e || o=e ||10*s+e+10*m+o>100*m+10*o+9) >>= (fun d ->
+    myguard(s=d || m=d || o=d || e=d || (s*1000+e*100+0*10+d)+(m*1000+o*100+0*10+e)>(m*10000+o*1000+9*100+e*10+9 )) >>= (fun y -> 
+    myguard(s=y || m=y || o=y || d=y || e=y ||not((d+e) mod 10=y)||(s*1000+e*100+0*10+d)+(m*1000+o*100+0*10+e)>(m*10000+o*1000+9*100+e*10+y )) >>= (fun r ->
+    myguard(s=r || m=r || o=r || d=r || e=r || y=r || 100*s+10*e+0+100*m+10*o+r>1000*m+100*o+10*9+e) >>= (fun n ->
+    if s=n || m=n || o=n || d=n || e=n || y=n || r=n || not ((10*n+d+10*r+e)mod 100 = (10*e+y))  then [] else guard(f s e n d m o r y) >>= (fun _ ->
+        return (s,e,n,d,m,o,r,y))))))))));;
+val fukumenn2 :
+  (int * int * int * int * int * int * int * int)
+  m = [(9, 5, 6, 7, 1, 0, 8, 2)]
+
+考察
+非決定モナドを作って課題の覆面算を解く関数fukumen1とfukumen2を作成した。
+fukumen1の解は異なる文字に同じ数字を割り当てることや先頭の文字に0を割り当てることを許した。
+fukumen2の実装の際には、関数の内部でmyguardという関数を作成することによって似た処理を略記した。
+また実行時間を短くするために答えが満たすべき関係式を満たしているかどうか途中でチェックすることによって計算量を減らした。
+コンパイルして実行すると明らかに1秒未満で覆面算を解くことができた。
+
+問3
+
+動作例
+スライドの動作例
+utop # (f 3) >>= (fun a ->
+  (g a)>>= (fun b->
+    (f b) >>= (fun c-> return c)));;
+- : int * string =
+(9, "call f(3), call g(4), call f(8), ")
+
+モナド則を満たすこと
+utop # (return 1) >>= f ;;
+- : int * string = (2, "call f(1), ")
+
+utop # (1,"hello") >>= return;;
+- : int * string = (1, "hello")
+
+utop # ((1,"hello ") >>= f) >>= g ;;
+- : int * string =
+(4, "hello call f(1), call g(2), ")
+utop # (1,"hello ") >>= (fun x -> f x >>= g);;
+- : int * string =
+(4, "hello call f(1), call g(2), ")
+
+考察
+値と出力する文字列の組を型構成子としてモナドを実装することで、文字列を書き込む副作用を表すWriterモナドを実装できた。
+上の実行例にあるようにモナド則を満たすことを確認した。
+
+問4
+実行例
+
+スライドの動作例
+utop # runmemo (fib 80);;
+- : int = 23416728348467685
+この計算をすぐに終えることができた。
+
+階乗の計算
+utop # let rec fact n =
+  if n <= 1 then return n
+  else 
+    (memo fact (n-1)) >>= (fun r1 ->
+      return (r1*n));;
+val fact : int -> int m = <fun>
+utop # runmemo(fact 10);;
+- : int = 3628800
+
+モナド則を満たすこと
+utop # runmemo ((return 3) >>= fib) = runmemo (fib 3);;
+- : bool = true
+
+utop # let y = (fun s -> (3,s));;
+val y : 'a -> int * 'a = <fun>
+utop # ( y >>= return ) IntIntStorage.empty = y IntIntStorage.empty;;
+- : bool = true
+
+utop # runmemo((y>>=fib) >>= fact) = runmemo(y>>=(fun x -> fib x >>= fact));;
+- : bool = true
+
+考察
+モナドの型構成子を「メモを受け取って値と新しいメモの組を返す関数」と定義することでモナドを実装した。
+整数型関数における実際のメモはモジュールIntIntStorageを定義し、引数と返り値の組のリストとして計算した値を保存しておき、
+関数eLookupを用いることで引数と返り値の組が保存されていなくても副作用なく値を参照できるようにした。
+そして関数memoを、関数とその引数を受け取ってすでに値が計算されていたらメモからその返り値を参照して返し、
+値が計算されていなければ新しく計算を行ってメモを更新して返すように定義することによってすでに行った計算を省略するメモ化を実現した。
+実行例にあるようにスライドにあるフィボナッチ数列の計算をすぐに終えることができ、モナド則を満たすことも確認できた。
+
+参考
+<https://hackage.haskell.org/package/monad-memo> メモ化モナドの実装の参考になった
+<http://www.u-kei.co.jp/kiji/memoise4.html>　メモ化モナドについて日本語で解説されている
+
+発展１
+動作例(一部省略)
+(日付と天気のデータを持つ環境に操作を行う例)
+type myenv = {month:int;date:int;weather:string}
+type 'a m = (myenv,'a)reader
+let to_string_info month date weather = (string_of_int month)^"/"^(string_of_int date)^" weather:"^weather
+let get_weather env = env.weather
+let message env m = run m env 
+と定義し、以下を実行
+utop # let _ =
+  let env' = {month = 1;date = 1 ; weather = "sunny" } in
+  let res = 
+    return 5
+    |> map (fun x -> x+14)
+    >>= (fun x -> (ask() |>  map get_weather |> map (to_string_info 5 x)) )
+    |> local (fun env -> {env with weather = "rainy"})
+    |> message env' in 
+  Printf.printf "%s\n" res;;
+5/19 weather:rainy
+- : unit = ()
+
+(モナド則を満たすことの確認)
+let m = return 1
+let f = fun x -> ask() |> map(fun env -> x+1)
+let g = fun x -> ask() |> map(fun env -> x+10)
+let testenv = {month =1;date=1;weather="cloudy"}
+と定義し、以下を実行
+utop # let p1 = run (return 1 >>= f) testenv= run (f 1)testenv
+let p2 = run (m >>= return) testenv =run m testenv
+let p3 = run ((m >>= f) >>= g) testenv= run (m >>= (fun x -> f x >>= g)) testenv;;
+val p1 : bool = true
+val p2 : bool = true
+val p3 : bool = true
+モナド則を満たすことを確認できた。
+
+考察
+環境を共有するmonadであるReader monadを実装した。
+このReader monadを用いると参照したい値の変更を禁止して、環境として共有することができる。
+monadの型は環境を受け取って値を返す関数として定義した。関数は以下の通りである。
+
+type ('a, 'b) reader = Reader of ('a -> 'b) (*reader型:環境を受け取って値を返す関数*)
+val run : ('a, 'b) reader -> 'a -> 'b = <fun> (*reader型をその変数が表す関数に変える関数*)
+val ( >>= ) :('a, 'b) reader ->('b -> ('a, 'c) reader) -> ('a, 'c) reader = <fun> (*計算をつなげる*)
+val return : 'a -> ('b, 'a) reader = <fun> (*reader型を返す。返り値はどんな環境を受け取ってもその値を返す関数を格納したreader型*)
+val ask : unit -> ('a, 'a) reader = <fun> (*受け取った環境をそのまま返すreader型*)
+val local :
+  ('a -> 'b) -> ('b, 'c) reader -> ('a, 'c) reader =<fun> (*環境を操作する関数を受け取って一時的に環境を書き換える関数*)
+val map :
+  ('a -> 'b) -> ('c, 'a) reader -> ('c, 'b) reader =<fun> (*Reader型のmが表す関数の返り値にfの操作を行う関数*)
+
+環境の型に合わせて環境の値を使用する関数を定義することで環境の値を参照することが可能。
+環境を取り出すためには環境の値をそのまま返す関数ask()を使う。
+環境の値を一時的に変更したい場合は関数localを使い、値そのもの(reader型が表す関数の返り値)への操作を加えるには関数mapを使う。
+reader型をそれが表す関数に変更するためには関数runを使い、これらの関数と計算をつなげるbind、returnを組み合わせて環境を参照した操作を行える。
+いずれの関数も環境を変更することができないので、環境の値を保存したまま値を共有することができる。
+またモナド則を満たすことも確認できた。
+
+参考
+<https://hackage.haskell.org/package/mtl-2.3/docs/src/Control.Monad.Reader.Class.html#MonadReader> Reader monadについて参考にした
+<https://zenn.dev/tobi462/articles/8190584e7ddc31#local-%E9%96%A2%E6%95%B0> Reader monadについて分かりやすく書かれていた
+<https://gist.github.com/VincentCordobes/fff2356972a88756bd985e86cce03023> Ocamlでの実装の参考にした
+<https://tnomura9.exblog.jp/15236425/> Reader monad の特徴についてよくまとめられていた
+
+発展2
+動作例
+utop # let find1 = (*はじめのlist以外のlistが要素数1でないと返り値は[]*)
+  [1;2] >>= (fun x ->
+  [5;6] >>= (fun y -> 
+  (guard(x +y > 4) >>= (fun _ -> return (x,y))) ))
+;;
+val find1 : (int * int) m = []
+
+utop # let find2 = (*全ての要素と条件を満たせば[]ではない返り値*)
+    [1;2] >>= (fun x ->
+    [5] >>= (fun y -> 
+(guard(x +y > 4) >>= (fun _ -> return (x,y)))  ))
+;;
+val find2 : (int * int) m = [(1, 5); (2, 5)]
+
+utop # let find3 =(*はじめのlist以外のlistが要素数1でないと返り値は[]*)    
+    [1;2] >>= (fun x ->
+    [4;5] >>= (fun y -> 
+(guard(y = 4) >>= (fun _ -> return (x,y)))  ))
+;;
+val find3 : (int * int) m = []
+
+utop # let find4 = (*全ての要素が条件を満たさないと[]*)
+    [1;2] >>= (fun x ->
+    [5] >>= (fun y -> 
+(guard(x = 1) >>= (fun _ -> return (x,y)))  ))
+;;
+val find4 : (int * int) m = []
+
+モナド則を満たすこと
+let m = [1;2;3]
+let rec f x = [x+1]
+let g x = [x-1]
+と定義し、以下を実行
+utop # let b1 = return 1 >>= f  = f 1
+let b2 = m >>= return = m
+let b3 = (m >>= f) >>= g = (m >>= (fun x-> (f x >>= g)));;
+
+val b1 : bool = true
+val b2 : bool = true
+val b3 : bool = true
+モナド則を満たすことを確認できた。
+
+考察
+型がリストであるモナドのreturnの値の自然な定義は講義資料の通常のlistモナドであると考えられる。
+そこでこの関数returnを固定したままbindを定義することでlistモナドを定義することを考える。
+モナド則は
+1. return x >>= f  = fx
+2. m >>= return = m
+3. (m >>= f) >>= g = m >>= (fun x-> (f x >>= g))
+の3つであるが、このとき、1から要素数1のリストに対して、
+条件A:[x] >>= (fun x -> [f x] )= [f x] 
+であることが分かる。また、リストの要素に対する関数fの自然な適用方法が
+[x1;x2;x3] -> [f x1;f x2;f x3]
+のみであることに注意すると関数returnの自然な適用は
+[x1;x2;x3] -> [[x1];[x2];[x3]]
+となるのでモナド則2からm >>= fの値は、
+条件B:「（上で与えた）fのmに対する自然な適用後のリストの要素が全て要素数1のリストm'であったとき、List.concat m'」
+であることが分かる。
+実際に通常のlistモナドはこの条件A,Bを満たしている。
+以上の考察から、新しいlistモナドのbindの定義を、m >>= f の値が
+「fのmに対する自然な適用後のリストm'の要素が、1つだけまたは全て要素数1のリストであったとき、List.concat m'、そうでないとき[]」
+と定義した。このときモナド則3も満たされ、動作例でも確認できた。
+なおこの実装のために
+リストの要素が1つだけであるかどうかを判定する関数single
+リストの要素が全て要素数1のリストであるかどうかを判定する関数single_allを定義した。
+
+このモナドが表す計算は、講義資料の非決定計算を表現するlistモナドと同じように考えると
+「あるリストの要素全てが要素数1のリストで与えられる要素全てに対して、ある条件を満たすかどうかを判定する計算」であると言える。
+通常のlistモナドと同じように関数guardを定義すると、ある要素を一つ固定したとき、bindによってつながる以降の計算で
+条件を満たすものが一つでもあるときbindの返り値は[]
+条件を満たすものが２つ以上存在する場合もbindの返り値は[]
+となるので、意味のある計算を行うためには最初に与えるリストのみ複数の要素を許し、それ以降のリストは要素数が1つでなくてはならない。
+（文章での説明が難しいので動作例を参照ください。）
+さらにこの場合には最初に与えた要素全てが条件を満たすときのみ、[]以外の返り値が得られるのでこのモナドが表す計算が
+「あるリストの要素全てが要素数1のリストで与えられる要素全てに対して、ある条件を満たすかどうかを判定する計算」であると言える。
+しかし、この計算はこのモナドを用いずにより容易に実装できるため、このモナドの有用性はあまりない。
+このモナドによって表現される別の計算があるのではないかと考えたが、結局思い浮かばなかった。
+この点は今後の課題としたい（もしあるなら教えてほしいです）。
+またモナドについて理解不足な点が多くあるのでこの点も今後の課題としたい。
+
+参考
+<https://qiita.com/1to100pen/items/1558a4d6600c47f7f859> 今回の考察の関数join,mapを用いた解説がされている。
+<https://en.wikibooks.org/wiki/Haskell/Understanding_monads> モナドの概念自体について参考にした
