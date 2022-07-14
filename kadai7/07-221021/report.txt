@@ -1,0 +1,233 @@
+課題07
+富張聡祥　05221021
+
+問1
+動作例
+スライドの動作例
+型推論が通る例
+# fun x -> x+1;;                    
+- = <fun>
+# fun f ->  f 3 + f 5;;
+- = <fun>
+# fun f -> fun g -> fun x -> f(g x);;
+- = <fun>
+# fun x -> fun y -> fun z -> x z (y z);;
+- = <fun>
+
+型推論が通らない例
+# 3+true;;                          
+Syntax Error
+# if 42 then 1 else 2;;
+Syntax Error
+# fun x -> if x then 1 else x ;;
+Syntax Error
+# 5(fun x -> x);;
+Syntax Error
+
+その他の例
+let式の例
+# let x = 3;;
+val x = 3
+# x + 1;;
+- = 4
+# x + true;;
+Syntax Error
+# y;;
+Syntax Error
+
+再帰関数の例
+# let rec sum x = if x = 0 then x else x + sum(x-1) in sum 10;;
+- = 55
+# let rec fib x = if x<2 then x else fib(x-1) + fib(x-2);;
+val fib = <fun>
+# fib 10;;
+- = 55
+
+let多相が許されていない例
+# let id = fun x -> x;;
+val id = <fun>
+# if (id true) then (id 1) else 0;;
+Syntax Error
+
+型推論で取り除けないエラーの例
+# 1/0;;
+Fatal error: exception Division_by_zero
+
+京都大学のホームページの例
+# 1 + 2 ;;
+- : int = 3
+# -2 * 2 ;;
+- : int = -4
+# 1 < 2 ;;
+- : bool = true
+# fun x -> x ;;
+- : ('a1 -> 'a1) = <fun>
+# fun x -> fun y -> x ;;
+- : ('a2 -> ('a3 -> 'a2)) = <fun>
+# fun x -> fun y -> y ;;
+- : ('a4 -> ('a5 -> 'a5)) = <fun>
+# (fun x -> x + 1) 2 + (fun x -> x + -1) 3 ;;
+- : int = 5
+# fun f -> fun g -> fun x -> g (f x) ;;
+- : (('a12 -> 'a13) -> (('a13 -> 'a14) -> ('a12 -> 'a14))) = <fun>
+# fun x -> fun y -> fun z -> x z (y z) ;;
+- : (('a17 -> ('a19 -> 'a20)) -> (('a17 -> 'a19) -> ('a17 -> 'a20))) = <fun>
+# fun x -> let y = x + 1 in x ;;
+- : (int -> int) = <fun>
+# fun x -> let y = x + 1 in y ;;
+- : (int -> int) = <fun>
+# fun b -> fun x -> if x b then x else (fun x -> b) ;;
+- : (bool -> ((bool -> bool) -> (bool -> bool))) = <fun>
+# fun x -> if true then x else (if x then true else false) ;;
+- : (bool -> bool) = <fun>
+# fun x -> fun y -> if x then x else y ;;
+- : (bool -> (bool -> bool)) = <fun>
+# fun n -> (fun x -> x (fun y -> y)) (fun f -> f n) ;;
+- : ('a36 -> 'a36) = <fun>
+# fun x -> fun y -> x y ;;
+- : (('a38 -> 'a39) -> ('a38 -> 'a39)) = <fun>
+# fun x -> fun y -> x (y x) ;;
+- : (('a42 -> 'a43) -> ((('a42 -> 'a43) -> 'a42) -> 'a43)) = <fun>
+# fun x -> fun y -> x (y x) (y x) ;;
+- : (('a48 -> ('a48 -> 'a49)) -> ((('a48 -> ('a48 -> 'a49)) -> 'a48) -> 'a49)) = <fun>
+# fun x -> fun y -> fun z -> x (z x) (y (z x y)) ;;
+- : (((('a56 -> 'a57) -> 'a56) -> ('a57 -> 'a58)) -> (('a56 -> 'a57) -> ((((('a56 -> 'a57) -> 'a56) -> ('a57 -> 'a58)) -> (('a56 -> 'a57) -> 'a56)) -> 'a58))) = <fun>
+# let id = fun x -> x in let f = fun y -> id (y id) in f ;;
+- : ((('a62 -> 'a62) -> 'a62) -> 'a62) = <fun>
+# let k = fun x -> fun y -> x in let k1 = fun x -> fun y -> k (x k) in k1;;
+- : ((('a67 -> ('a64 -> 'a67)) -> 'a67) -> ('a66 -> ('a64 -> 'a67))) = <fun>
+# let s = fun x -> fun y -> fun z -> x z (y z) in let s1 = fun x -> fun y -> fun z -> x s (z s) (y s (z s)) in s1 ;;
+- : (((('a71 -> ('a73 -> 'a74)) -> (('a71 -> 'a73) -> ('a71 -> 'a74))) -> ('a82 -> ('a83 -> 'a84))) -> (((('a71 -> ('a73 -> 'a74)) -> (('a71 -> 'a73) -> ('a71 -> 'a74))) -> ('a82 -> 'a83)) -> (((('a71 -> ('a73 -> 'a74)) -> (('a71 -> 'a73) -> ('a71 -> 'a74))) -> 'a82) -> 'a84))) = <fun>
+# let g = fun h -> fun t -> fun f -> fun x -> f h (t f x) in g ;;
+- : ('a85 -> ((('a85 -> ('a91 -> 'a92)) -> ('a88 -> 'a91)) -> (('a85 -> ('a91 -> 'a92)) -> ('a88 -> 'a92)))) = <fun>
+# let s = fun x -> fun y -> fun z -> x z (y z) in let k = fun x -> fun y -> x in let l = fun x -> fun y -> x in s k l;; 
+- : ('a101 -> 'a101) = <fun>
+# let s = fun x -> fun y -> fun z -> x z (y z) in let k = fun x -> fun y -> x in s k k ;;
+Syntax Error
+# let s = fun x -> fun y -> fun z -> x z (y z) in let l = fun x -> fun y -> y in s l l;;
+Syntax Error
+# fun x -> fun y -> fun z -> let b = x y z in if b then z y else y ;;
+- : (('a126 -> (('a126 -> 'a126) -> bool)) -> ('a126 -> (('a126 -> 'a126) -> 'a126))) = <fun>
+# let pair = fun x1 -> fun x2 -> fun y -> y x1 x2 in let proj1 = fun p -> p (fun x1 -> fun x2 -> x1) in let proj2 = fun p -> p (fun x1 -> fun x2 -> x2) in proj1 (pair 1 100) ;;
+- : int = 1
+# let pair = fun x1 -> fun x2 -> fun y -> y x1 x2 in let proj1 = fun p -> p (fun x1 -> fun x2 -> x1) in let proj2 = fun p -> p (fun x1 -> fun x2 -> x2) in proj1 (proj2 (pair 10 (pair 20 30))) ;;
+Syntax Error
+# let f = fun x -> x in if f true then f 1 else f 2 ;;
+Syntax Error
+# let f = fun x -> 3 in f true + f 4;; ;;
+Syntax Error
+# fun b -> let f = fun x -> x in let g = fun y -> y in if b then f g else g f;;
+Syntax Error
+# fun b -> fun f -> let g1 = fun x -> x f in let g2 = fun x -> x f in fun z -> if b then g1 z g2 else g2 z g1;; 
+Syntax Error
+# 1 + true ;;
+Syntax Error
+# 2 + (fun x -> x) ;;
+Syntax Error
+# -2 * false ;;
+Syntax Error
+# fun x -> x x;;  
+Syntax Error
+# let f = fun x -> fun g -> g (x x g) in f f ;;
+Syntax Error
+# let g = fun f -> fun x -> f x (f x) in g ;;
+Syntax Error
+# let g = fun f -> fun x -> f x (x f) in g ;;
+Syntax Error
+# fun x -> fun y -> x y + y x ;;
+Syntax Error
+# fun x -> fun y -> x y + x ;;
+Syntax Error
+# fun x -> fun y -> if x y then x else y ;;
+Syntax Error
+# fun x -> fun y -> if x y then (fun z -> if y z then z else x) else (fun x -> x) ;;
+Syntax Error
+# fun x -> fun y -> fun z -> let b = x y z in if b then z y else z x ;;
+Syntax Error
+# fun x -> fun y -> fun z -> if x y then z x else y z ;;
+Syntax Error
+# fun x -> if x then 1 else x ;;
+Syntax Error
+# (fun x -> x + 1) true ;;
+Syntax Error
+# fun x -> fun y -> y (x (y x)) ;;
+Syntax Error
+# (fun f -> fun x -> f (f x)) (fun x -> fun y -> x) ;;
+Syntax Error
+# fun x -> fun y -> y (x (fun z1 -> fun z2 -> z1)) (x (fun z -> z)) ;;
+Syntax Error
+# fun b -> fun f -> let g1 = fun x -> f x in let g2 = fun x -> f x in if b then g1 g2 else g2 g1 ;;
+Syntax Error
+# let rec f x = f in f ；;;
+Syntax Error
+# let rec f x = f in f ;;
+Syntax Error
+# let rec f x = f x in f ;;
+- : ('a273 -> 'a274) = <fun>
+# let rec f x = f (f x) in f ;;
+- : ('a278 -> 'a278) = <fun>
+# fun f -> let rec x z = f (x z) in x 666 ;;
+- : (('a6 -> 'a6) -> 'a6) = <fun>
+# fun f -> fun g -> let rec h x = h (g (f x)) in h ;;
+- : (('a12 -> 'a11) -> (('a11 -> 'a12) -> ('a12 -> 'a10))) = <fun>
+# let rec loop f = fun x -> (loop f) (f x) in loop ;;
+- : (('a18 -> 'a18) -> ('a18 -> 'a19)) = <fun>
+# let rec looq f = fun x -> (looq f) (x f) in looq ;;
+Syntax Error
+# fun x -> let rec f y = x + 1 in x ;;
+- : (int -> int) = <fun>
+# let rec f z = f z (fun g -> fun h -> h (g h)) in f ;;
+Syntax Error
+
+正しく動作することを確認できた。
+
+考察
+今回の課題とは直接関係がないが単項演算子-に対応するためparser.mlyを変更した。conflictは起きないように定義できた。
+新しくcheck.mlファイルを作成し、type tyenv, 関数infer_expr,infer_cmdとtヘルパー関数lookupを定義した。
+ヘルパー関数lookupは型環境tyenvから変数の型を取り出す関数であり、変数の型が型環境において未定義の場合例外TyErrorを発生させる。
+関数infer_exprは型環境と評価式を受け取って式の構造に従ってその式の型と制約を返す関数である。
+実装はほとんど講義資料を参考にし、EAdd,ELtなどの評価式は引数の型が決まっている関数の関数適用とみなすことで型と制約を生成した。
+関数infer_cmdは関数infer_exprを利用してパーサーが返すコマンドと型環境を受け取って、コマンドの型と新しい型環境を返す関数である。
+コマンドがCExpのときは評価式の型と制約をその時の型環境で生成し、制約を解決してその型の具体的な型を求め、得られた型と元の型環境の組を返す。
+コマンドがCDecl,CRecDeclのときは講義資料にならって定義する変数、再帰関数の型と制約を生成し、制約を解決してその型の具体的な型を求め、
+得られた型と「変数とその型を追加した型環境」の組を返す。制約の解消がうまく行かなかった場合は例外TyErrorが発生する。
+そしてmain.ml内の関数read_eval_printの引数に型環境を加え、毎回のコマンドの評価の前に関数infer_cmdを呼び出して型推論を行って型環境を更新する処理を行い、
+例外TyErrorが発生した場合は文字列"Syntax Error\n"を出力してそのコマンドを無視するように関数を拡張した。
+この実装によって式の評価前に型推論を行い型がつくものだけを評価するように実装できることを動作例によって確認できた。
+またlet多相が許されていないことも確認できた。
+
+参考
+<https://www.fos.kuis.kyoto-u.ac.jp/~igarashi/class/isle4-07w/testcases.html> テストケースの参考にした
+
+
+発展1
+動作例
+utop # (*1*)let _= (fun f -> (f 1,f 1.))(fun x -> x);;
+Error: This expression has type float but an expression was expected of type
+         int
+
+utop # let _ = (pred (pred three))(fun y->y+1)0(*型がつく*);;
+- : int = 1
+utop # let _ = ((fun f x -> f(f x))pred three)(fun y->y+1)0(*型がつかない*);;
+Error: This expression has type...(省略)
+
+考察
+（プログラム例はmain.mlに書いてあります。）
+2つのプログラムはいずれも型がついても良さそうだがOCamlで型がつかないプログラムである。
+１つ目の式
+(fun f -> (f 1,f 1.))(fun x -> x)
+は関数を受け取って1と少数の1.に関数を適用させた組を返す関数に恒等関数を適用させた式である。
+これは(1,1.)の組を返し、自然にint*floatの型がついて良さそうであるが型がつかない。
+また2つ目の式は第一回課題の発展3のときにうまく型が定義されなかったプログラムであり、
+((fun f x -> f(f x))pred three)(fun y->y+1)0
+(pred (pred three))(fun y->y+1)0
+の式ではどちらも同じ操作を行おうとしているが、後者には型が付くのに対して前者では型エラーが発生してしまう。
+これらの式に型がつかない原因はOCamlがletで導入された値のみが多相性を持つことができるというlet多相の性質を持っているからである。
+つまり関数のパラメータを多相的につかうことができないためにこれらの式には型がつかない。
+１つ目のプログラム例で一つの関数をint,floatという異なる型に適用しているため型エラーが発生している。
+また2つ目のプログラム例でも、先頭の関数(fun f x -> f(f x))による二回のpredの適用が一度目がthree,二度目がpred threeという異なる型の関数に対して行われており、
+(fun f x -> f(f x))が受け取る関数fが多相性を持つことができないために型エラーが生じている。
+なおOCamlでこのようなlet多相に制限されている理由は型推論を決定可能にするためのようであるがその詳細は理解できていないので今後の課題としたい。
+
+参考
+<https://www.fos.kuis.kyoto-u.ac.jp/~igarashi/class/isle4-02w/mltext/ocaml005.html> OCamlのlet多相の性質について参考にした。
