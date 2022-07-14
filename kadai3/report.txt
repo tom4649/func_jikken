@@ -1,0 +1,193 @@
+課題０３
+富張聡祥　05221021
+
+問１
+例に沿って実行ファイルを生成した。
+.cmoファイルをインタプリタで実行した。
+.mliファイルをコンパイルせずに同名の.mliファイルが存在する.mlファイルをコンパイルしようとするとErrorが発生した。
+最後のリンク時にファイルの順番を変えると"Wrong link order"というエラーが発生した。
+Duneを用いてプロジェクトを作成した。
+
+問２
+動作例
+utop # let s = AbstStack.push 5(AbstStack.push 4( AbstStack.push 3( AbstStack.push 2( AbstStack.push 1(AbstStack.empty)))))
+;; 
+val s : int AbstStack.t = <abstr>
+utop # AbstStack.size s;;
+- : int = 5
+utop # let  (a,res) = AbstStack.pop s in AbstStack.pop res;;
+- : int * int AbstStack.t = (4, <abstr>)
+utop # AbstStack.pop AbstStack.empty;;
+Exception: AbstStack.My_exception.
+
+考察
+動作例のように、実装したスタックが正しく動作することを確認できた。
+なお、動作例にもあるように例外My_exceptionを定義して、空のスタックにpopを適用したときには例外が生成されるように実装した。
+
+問３
+動作例
+
+順序付き整数集合OrderedIntをファンクタの引数として整数の二分木を作成した。
+module IntBtree = AbstMultiset2(OrderedInt) ;;
+utop # let tree = IntBtree.add 4(IntBtree.add  3 (IntBtree.add  4(IntBtree.add  2(IntBtree.add 3(IntBtree.add  1(IntBtree.empty))))));;
+val tree : IntBtree.t = <abstr>
+utop # IntBtree.count 6 tree;;
+- : int = 0
+utop # IntBtree.count 4 tree;;
+- : int = 2
+utop # let tree1 = IntBtree.remove 4 tree;;
+val tree1 : IntBtree.t = <abstr>
+utop # IntBtree.count 4 tree1;;
+- : int = 1
+utop # let tree2 = IntBtree.remove 4 tree1;;
+val tree2 : IntBtree.t = <abstr>
+utop # IntBtree.count 4 tree2;;
+- : int = 0
+
+考察
+二分木を用いてファンクタを実装した。
+removeの実装のために、右の部分木から最小値を取得する必要があったため、二分木の最小値を取得するサブ関数getminを定義した。
+その際にgetminに空の木を与えると、例外が発生するように実装したがこの例外はremoveの実装において発生しないことが保証される。
+removeは引数として与えられた要素を高々一つだけ削除するように実装した。
+
+問４
+動作例
+OrderedIntをMakeMapの引数に渡すことによってモジュールMapを生成し、stringを値にもつ辞書を作成して動作を確かめた。
+utop # let m1 = Map.add (6,"roku")(Map.add(2,"two")(Map.add (1,"one") (Map.add (6,"six")(Map.add(0,"zero") Map.empty))));;
+val m1 : string Map.t = <abstr>
+utop # Map.lookup 6 m1;;
+- : string = "roku"
+utop # let m2 = Map.remove 6 m1;;
+val m2 : string Map.t = <abstr>
+utop # Map.lookup 6 m2;;
+Exception: Not_found.
+
+考察
+ノードとしてキーと値の組を持つ二分木によって連想配列を実装した。
+MakeMapのシグネチャとしてMAPを定めた。
+例外Not_foundを定義して連想配列に含まれないキーを持つ要素をlookupによって参照しようとすると例外が生成されるように実装した。
+問３と同様にremoveの実装のためにキーが最小のノードを取得するサブ関数getminを作成した。
+すでにある要素をaddによって連想配列に加えると、そのキーの値を更新するように実装した。
+
+問５
+動作例
+BoolMatrixの例
+utop #   let m1 = BoolMatrix.makematrix([[true;true;false];[false;true;false]])
+;;
+val m1 : bool list list =
+  [[true; true; false]; [false; true; false]]
+utop # let m2 = BoolMatrix.makematrix([[true;true];[false;true];[false;false]])
+;;
+val m2 : bool list list =
+  [[true; true]; [false; true]; [false; false]]
+utop # let m3 =BoolMatrix.mul m1 m2
+;;
+val m3 : bool list list =
+  [[true; true]; [false; true]]
+utop # BoolMatrix.makematrix([[true;true];[true];[false;false]]);;
+Exception: Invalid_Args.
+
+ToropMatrixの例
+utop # let a1=ToropMatrix.makematrix [[Torop.Int 1;Torop.Int 2;Torop.Int 3];[Torop.Int 4;Torop.Int 5;Torop.Int 6]] ;;
+val a1 : Torop.t list list =
+  [[Torop.Int 1; Torop.Int 2; Torop.Int 3];
+   [Torop.Int 4; Torop.Int 5; Torop.Int 6]]
+utop # let a2=ToropMatrix.makematrix [[Torop.Int 1;Torop.Int 2];[Torop.Int 3;Torop.Int 4];[Torop.Int 5;Torop.Int 6]]  ;;
+val a2 : Torop.t list list =
+  [[Torop.Int 1; Torop.Int 2];
+   [Torop.Int 3; Torop.Int 4];
+   [Torop.Int 5; Torop.Int 6]]
+utop # let a3 =ToropMatrix.mul a1 a2;;
+val a3 : Torop.t list list =
+  [[Torop.Int 2; Torop.Int 3];
+   [Torop.Int 5; Torop.Int 6]]
+utop # ToropMatrix.mul a1 a3;;
+Exception: Invalid_Args.
+utop # ToropMatrix.unit 4;;
+- : Torop.t list list =
+[[Torop.Int 0; Torop.Inf; Torop.Inf; Torop.Inf];
+ [Torop.Inf; Torop.Int 0; Torop.Inf; Torop.Inf];
+ [Torop.Inf; Torop.Inf; Torop.Int 0; Torop.Inf];
+ [Torop.Inf; Torop.Inf; Torop.Inf; Torop.Int 0]]
+utop # ToropMatrix.pow a3 3;;
+- : Torop.t list list =
+[[Torop.Int 6; Torop.Int 7];
+ [Torop.Int 9; Torop.Int 10]]
+
+最短経路を求める例
+mは重み付きグラフの例である
+utop # let m=[[Torop.Int 0;Torop.Int 1;Torop.Int 5;Torop.Inf];
+        [Torop.Inf;Torop.Int 0;Torop.Int 2;Torop.Int 4];
+        [Torop.Inf;Torop.Inf;Torop.Int 0;Torop.Int 1];
+        [Torop.Inf;Torop.Inf;Torop.Int 7;Torop.Int 0]] in
+ToropMatrix.pow m 5;;
+- : Torop.t list list =
+[[Torop.Int 0; Torop.Int 1; Torop.Int 3;
+  Torop.Int 4];
+ [Torop.Inf; Torop.Int 0; Torop.Int 2;
+  Torop.Int 3];
+ [Torop.Inf; Torop.Inf; Torop.Int 0;
+  Torop.Int 1];
+ [Torop.Inf; Torop.Inf; Torop.Int 7;
+  Torop.Int 0]]
+  正しく最短経路を求めることができた
+
+
+考察
+ファンクタMatrixのシグネチャは、引数をTとしたとき、行列の型をT.tの多次元配列として、以下の通り。
+module Matrix :
+  functor (T : SEMIRING) ->
+    sig
+      val makematrix :（多次元配列の要素数が正しいかを確かめて行列を作る関数）
+        'a list list -> 'a list list
+      val mul_one_num :（n^1行列aと行列bと整数nを受け取ってaとbのn列目の積を返す関数）
+        T.t list -> T.t list list -> int -> T.t
+      val mul_one :（n^1行列aと行列bを受け取ってaとbの積を返す関数）
+        T.t list -> T.t list list -> T.t list
+      val mul :（行列aと行列bを受け取ってaとbの積を返す関数）
+        T.t list list ->
+        T.t list list -> T.t list list
+      val show :（行列aと整数n,mを受け取ってのn行m列を返す関数）
+        'a list list -> int -> int -> 'a
+      val unit : int -> T.t list list（整数nを受け取ってn^n単位行列を返す関数）
+      val pow :（行列aと整数を受け取ってaのn乗を返す関数）
+        T.t list list -> int -> T.t list list
+    end
+
+これらの実装は少し複雑だったが再帰関数を用いてサブ関数を複数作ることによって実装した。
+動作例のように計算が正しく行われることを確認できた。
+とくに講義資料の例にあるように、重み付きの有向グラフにおいて正しく最短経路を計算することができた。
+
+発展１
+実行例
+utop #   let add12 = EAdd(Eq.refl,c1,c2);;
+val add12 : int expr =
+  EAdd (<abstr>, EConstInt (<abstr>, 1),
+   EConstInt (<abstr>, 2))
+utop #   eval add12;;
+- : int value = VInt (<abstr>, 3)
+utop # let clt = ELt(Eq.refl,EMul(Eq.refl,c1,c2),add12);;
+val clt : bool expr =
+  ELt (<abstr>,
+   EMul (<abstr>, EConstInt (<abstr>, 1),
+    EConstInt (<abstr>, 2)),
+   EAdd (<abstr>, EConstInt (<abstr>, 1),
+    EConstInt (<abstr>, 2)))
+utop # eval clt;;
+- : bool value = VBool (<abstr>, true)
+
+事前に型が整合しない式を排除した例
+utop #   let add12 = EAdd(Eq.refl,c1,c2);;
+Error: This expression has type Torop/2.t list
+       but an expression was expected of type
+         int expr
+       Hint: The module Torop has been defined multiple times
+         in this toplevel session.
+         Some toplevel values still refer to old
+         versions of this module.
+         Did you try to redefine them?
+考察
+前回の発展課題２をヒントに、型aと型bの同値関係を引数の型がaで返り値の型がbの関数と引数の型がbで返り値の型がaの関数の組として定めることができた。
+これによって反射律、推移律、対称律を自然に定義できてモジュールEqを実装することができた。
+またこのモジュールEqを用いることで前回の言語を定義すると事前に型が整合しない式を排除できて、実行時のエラーが発生しないことを確認できた。
+

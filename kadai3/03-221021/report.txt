@@ -1,0 +1,259 @@
+課題０３
+富張聡祥　05221021
+
+問１
+
+動作例
+.mliファイルをコンパイルせずに同名の.mliファイルが存在する.mlファイルをコンパイルしようとした動作例
+tomy@tomy-VirtualBox:~/func_jikken/kadai3/Week03$ ocamlc -c strSet.ml
+File "strSet.ml", line 1:
+Error: Could not find the .cmi file for interface strSet.mli.
+
+最後のリンク時にファイルの順番を変えた動作例
+tomy@tomy-VirtualBox:~/func_jikken/kadai3/Week03$ ocamlc -o sort sort.cmo strSet.cmo
+File "_none_", line 1:
+Error: Wrong link order: Sort depends on StrSet, Sort depends on StrSet,
+         Sort depends on StrSet, Sort depends on StrSet
+
+duneの動作例
+tomy@tomy-VirtualBox:~/func_jikken/kadai3/Week03/myproject$ dune init project myproject
+Success: initialized project component named myproject
+
+tomy@tomy-VirtualBox:~/func_jikken/kadai3/myproject/myproject$ dune exec myproject
+Hello, World!
+
+tomy@tomy-VirtualBox:~/func_jikken/kadai3/myproject/myproject$ dune runtest
+tomy@tomy-VirtualBox:~/func_jikken/kadai3/myproject/myproject$ dune clean(*_buildディレクトリが消去された*)
+
+考察
+例に沿って実行ファイルを生成した。
+.cmoファイルをインタプリタで実行した。
+.mliファイルをコンパイルせずに同名の.mliファイルが存在する.mlファイルをコンパイルしようとするとErrorが発生した。
+最後のリンク時にファイルの順番を変えると"Wrong link order"というエラーが発生した。
+Duneを用いてプロジェクトを作成し、ビルドやduneファイルの作成、テストの実行を行った。
+Duneの使い方については分からないことが多いが、使えるようになると便利だと思うので調べながら積極的に使っていきたい。
+
+参考
+Duneの使い方について以下のサイトを参考にした。
+<https://e-tec-memo.herokuapp.com/article/317/>
+<https://dune.readthedocs.io/en/stable/>
+
+問２
+動作例
+utop # let s = AbstStack.push 5(AbstStack.push 4( AbstStack.push 3( AbstStack.push 2( AbstStack.push 1(AbstStack.empty)))))
+;; 
+val s : int AbstStack.t = <abstr>
+utop # AbstStack.size s;;
+- : int = 5
+utop # let  (a,res) = AbstStack.pop s in AbstStack.pop res;;
+- : int * int AbstStack.t = (4, <abstr>)
+utop # AbstStack.pop AbstStack.empty;;
+Exception: AbstStack.My_exception.
+
+考察
+動作例のように、実装したスタックが正しく動作することを確認できた。
+なお、動作例にもあるように例外My_exceptionを定義して、空のスタックにpopを適用したときには例外が生成されるように実装した。
+
+問３
+動作例
+
+順序付き整数集合OrderedIntをファンクタの引数として整数の二分木を作成した。
+module IntBtree = AbstMultiset2(OrderedInt) ;;
+utop # let tree = IntBtree.add 4(IntBtree.add  3 (IntBtree.add  4(IntBtree.add  2(IntBtree.add 3(IntBtree.add  1(IntBtree.empty))))));;
+val tree : IntBtree.t = <abstr>
+utop # IntBtree.count 6 tree;;
+- : int = 0
+utop # IntBtree.count 4 tree;;
+- : int = 2
+utop # let tree1 = IntBtree.remove 4 tree;;
+val tree1 : IntBtree.t = <abstr>
+utop # IntBtree.count 4 tree1;;
+- : int = 1
+utop # let tree2 = IntBtree.remove 4 tree1;;
+val tree2 : IntBtree.t = <abstr>
+utop # IntBtree.count 4 tree2;;
+- : int = 0
+
+考察
+二分木を用いてファンクタを実装した。
+removeの実装のために、右の部分木から最小値を取得する必要があったため、二分木の最小値を取得するサブ関数getminを定義した。
+その際にgetminに空の木を与えると、例外が発生するように実装したがこの例外はremoveの実装において発生しないことが保証される。
+removeは引数として与えられた要素を高々一つだけ削除するように実装した。
+
+問４
+動作例
+OrderedIntをMakeMapの引数に渡すことによってモジュールMapを生成し、stringを値にもつ辞書を作成して動作を確かめた。
+utop # let m1 = Map.add (6,"roku")(Map.add(2,"two")(Map.add (1,"one") (Map.add (6,"six")(Map.add(0,"zero") Map.empty))));;
+val m1 : string Map.t = <abstr>
+utop # Map.lookup 6 m1;;
+- : string = "roku"
+utop # let m2 = Map.remove 6 m1;;
+val m2 : string Map.t = <abstr>
+utop # Map.lookup 6 m2;;
+Exception: Not_found.
+
+考察
+ノードとしてキーと値の組を持つ二分木によって連想配列を実装した。
+MakeMapのシグネチャとしてMAPを定めた。
+例外Not_foundを定義して連想配列に含まれないキーを持つ要素をlookupによって参照しようとすると例外が生成されるように実装した。
+問３と同様にremoveの実装のためにキーが最小のノードを取得するサブ関数getminを作成した。
+すでにある要素をaddによって連想配列に加えると、そのキーの値を更新するように実装した。
+
+問５
+動作例
+BoolMatrixの例
+utop #   let m1 = BoolMatrix.makematrix([[true;true;false];[false;true;false]])
+;;
+val m1 : bool list list =
+  [[true; true; false]; [false; true; false]]
+utop # let m2 = BoolMatrix.makematrix([[true;true];[false;true];[false;false]])
+;;
+val m2 : bool list list =
+  [[true; true]; [false; true]; [false; false]]
+utop # let m3 =BoolMatrix.mul m1 m2
+;;
+val m3 : bool list list =
+  [[true; true]; [false; true]]
+utop # BoolMatrix.makematrix([[true;true];[true];[false;false]]);;
+Exception: Invalid_Args.
+
+TropMatrixの例
+utop # let a1=TropMatrix.makematrix [[Trop.Int 1;Trop.Int 2;Trop.Int 3];[Trop.Int 4;Trop.Int 5;Trop.Int 6]] ;;
+val a1 : Trop.t list list =
+  [[Trop.Int 1; Trop.Int 2; Trop.Int 3];
+   [Trop.Int 4; Trop.Int 5; Trop.Int 6]]
+utop # let a2=TropMatrix.makematrix [[Trop.Int 1;Trop.Int 2];[Trop.Int 3;Trop.Int 4];[Trop.Int 5;Trop.Int 6]]  ;;
+val a2 : Trop.t list list =
+  [[Trop.Int 1; Trop.Int 2];
+   [Trop.Int 3; Trop.Int 4];
+   [Trop.Int 5; Trop.Int 6]]
+utop # let a3 =TropMatrix.mul a1 a2;;
+val a3 : Trop.t list list =
+  [[Trop.Int 2; Trop.Int 3];
+   [Trop.Int 5; Trop.Int 6]]
+utop # TropMatrix.mul a1 a3;;
+Exception: Invalid_Args.
+utop # TropMatrix.unit 4;;
+- : Trop.t list list =
+[[Trop.Int 0; Trop.Inf; Trop.Inf; Trop.Inf];
+ [Trop.Inf; Trop.Int 0; Trop.Inf; Trop.Inf];
+ [Trop.Inf; Trop.Inf; Trop.Int 0; Trop.Inf];
+ [Trop.Inf; Trop.Inf; Trop.Inf; Trop.Int 0]]
+utop # TropMatrix.pow a3 3;;
+- : Trop.t list list =
+[[Trop.Int 6; Trop.Int 7];
+ [Trop.Int 9; Trop.Int 10]]
+
+最短経路を求める例
+mは重み付きグラフの例である
+utop # let m=[[Trop.Int 0;Trop.Int 1;Trop.Int 5;Trop.Inf];
+        [Trop.Inf;Trop.Int 0;Trop.Int 2;Trop.Int 4];
+        [Trop.Inf;Trop.Inf;Trop.Int 0;Trop.Int 1];
+        [Trop.Inf;Trop.Inf;Trop.Int 7;Trop.Int 0]] in
+TropMatrix.pow m 5;;
+- : Trop.t list list =
+[[Trop.Int 0; Trop.Int 1; Trop.Int 3;
+  Trop.Int 4];
+ [Trop.Inf; Trop.Int 0; Trop.Int 2;
+  Trop.Int 3];
+ [Trop.Inf; Trop.Inf; Trop.Int 0;
+  Trop.Int 1];
+ [Trop.Inf; Trop.Inf; Trop.Int 7;
+  Trop.Int 0]]
+  正しく最短経路を求めることができた
+
+
+考察
+ファンクタMatrixのシグネチャは、引数をTとしたとき、行列の型をT.tの多次元配列として、以下の通り。
+module Matrix :
+  functor (T : SEMIRING) ->
+    sig
+      val makematrix :（多次元配列の要素数が正しいかを確かめて行列を作る関数）
+        'a list list -> 'a list list
+      val mul_one_num :（n^1行列aと行列bと整数nを受け取ってaとbのn列目の積を返す関数）
+        T.t list -> T.t list list -> int -> T.t
+      val mul_one :（n^1行列aと行列bを受け取ってaとbの積を返す関数）
+        T.t list -> T.t list list -> T.t list
+      val mul :（行列aと行列bを受け取ってaとbの積を返す関数）
+        T.t list list ->
+        T.t list list -> T.t list list
+      val show :（行列aと整数n,mを受け取ってのn行m列を返す関数）
+        'a list list -> int -> int -> 'a
+      val unit : int -> T.t list list（整数nを受け取ってn^n単位行列を返す関数）
+      val pow :（行列aと整数を受け取ってaのn乗を返す関数）
+        T.t list list -> int -> T.t list list
+    end
+
+これらの実装は少し複雑だったが再帰関数を用いてサブ関数を複数作ることによって実装した。
+動作例のように計算が正しく行われることを確認できた。
+とくに講義資料の例にあるように、重み付きの有向グラフにおいて正しく最短経路を計算することができた。
+
+発展１
+実行例
+utop #   let add12 = EAdd(Eq.refl,c1,c2);;
+val add12 : int expr =
+  EAdd (<abstr>, EConstInt (<abstr>, 1),
+   EConstInt (<abstr>, 2))
+utop #   eval add12;;
+- : int value = VInt (<abstr>, 3)
+utop # let clt = ELt(Eq.refl,EMul(Eq.refl,c1,c2),add12);;
+val clt : bool expr =
+  ELt (<abstr>,
+   EMul (<abstr>, EConstInt (<abstr>, 1),
+    EConstInt (<abstr>, 2)),
+   EAdd (<abstr>, EConstInt (<abstr>, 1),
+    EConstInt (<abstr>, 2)))
+utop # eval clt;;
+- : bool value = VBool (<abstr>, true)
+
+事前に型が整合しない式を排除した例
+utop #   let add12 = EAdd(Eq.refl,c1,c2);;
+Error: This expression has type Torop/2.t list
+       but an expression was expected of type
+         int expr
+       Hint: The module Torop has been defined multiple times
+         in this toplevel session.
+         Some toplevel values still refer to old
+         versions of this module.
+         Did you try to redefine them?
+考察
+前回の発展課題２をヒントに、型aと型bの同値関係を表す型('a,'b)equalを「引数の型がaで返り値の型がbの関数と引数の型がbで返り値の型がaの関数の組」
+として定めることができた。
+これによって関数refl,symm,trans,applyを自然に定義できてモジュールEqを実装することができた。
+またこのモジュールEqを用いることで前回の言語を定義すると事前に型が整合しない式を排除できて、実行時のエラーが発生しないことを確認できた。
+
+発展2
+動作例
+発展１と同様に言語をEq2を用いて定義し、関数evalによって正しく評価されること、型が整合しない式が事前に排除されることを確認した。
+
+let c1 = EConstInt(Eq2.refl,1)
+let c2 = EConstInt(Eq2.refl,2)
+let ct = EConstBool(Eq2.refl,true)
+let add12 = EAdd(Eq2.refl,c1,c2) 
+let clt = ELt(Eq2.refl,EMul(Eq2.refl,c1,c2),add12)
+utop #   eval add12;;
+- : int value = VInt (<abstr>, 3)
+utop # eval clt;;
+- : bool value = VBool (<abstr>, true)
+
+事前に型が整合しない式を排除した例
+utop #   let cadd = EAdd(Eq2.refl,c1,ct);;
+Error: This expression has type bool expr
+       but an expression was expected of type
+         int expr
+       Type bool is not compatible with type int 
+
+考察
+発展1のEQを拡張してmodule Liftを加えたシグネチャEQ2を持つEq2を定義した。
+実装にはFirst-class modulesというOcamlの機能を用いた。
+下の参考に挙げたサイト1（この課題の元ネタだと思われる）の実装が参考になった。
+しかしこのサイトの実装ではsymmやtrans、module Liftをうまく定義できなかったので実装は自分で大きく変えた。
+型a,bと関数f:a->b,関数g:b->a,モジュールを受け取ってそのモジュールの型に「Lift」するファンクターCastを要素とするシグネチャEqTCを定義し、
+型('a,'b)equalをEqTCをモジュール型として持つファーストクラスモジュールとして定義した。
+ファーストクラスモジュールは多相的に定義することができ、それによってEq2の関数やモジュールを定義できた。
+なお、GADTsについて下のサイト3を参考にして調べたが理解できない部分が多かったので今後の課題としたい。
+
+参考
+1 <https://okmij.org/ftp/ML/first-class-modules/> ;全体の実装の参考にした。
+2 <https://v2.ocaml.org/manual/firstclassmodules.html> :first class module について調べた。
+3 <https://wiki.haskell.org/Generalised_algebraic_datatype> :GADTsについて参考にした。
