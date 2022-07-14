@@ -1,0 +1,290 @@
+レポート11
+05221021 富張聡祥
+
+問1
+ancestor(X,Y):-ancestor(Z,Y),parent(X,Z).
+ancestor(X,Y):-parent(X,Y).
+が上手く動作しない理由
+
+PrologはDFSで上から下、ゴールを左から右の順でチェックするためancestor(X,Y)を確認しようとすると
+１つ目のルールのancestor(Z,Y)となるZが存在するかどうかの確認が始まり、
+この確認にも一つ目のルールのancestor(Z',Y)となるZ'が存在するかどうかの確認が始まる。
+しかし定義しようとしている述語ancestorはどの引数に対してもfactとして成り立っていないのでこの確認は終わらず、無限ループに陥る。
+例えばancestor(kobo,iwao)の問い合わせにはancestor(Z,iwao)となるZが存在するかどうかの確認が始まり、
+この確認にも一つ目のルールのancestor(Z',iwao)となるZ'が存在するかどうかの確認が始まる、、、という動作が繰り返されて問い合わせは終わらない。
+
+問2
+nat_list(X)が上手く動作しない理由
+
+nat_list(X)の問い合わせを行うとnat_list(X)がnat_list([]),nat_list([N|X])の順に単一化可能かどうか確認される。
+このときnat_list([])の単一化に失敗する条件が同時に与えられると（講義資料の例にあるようにX=s(Y)などの場合）、
+nat_listに関するfactが一つも確認されないままnat_list([N|X])の単一化可能性の確認に移り
+nat(N)の単一化可能性の評価が終わるとnat_list(X)の問い合わせが再び始まるが、この時点でもnat_listに関するfactは一つも確認されていないので
+はじめのnat_list(X)の問い合わせ時と同じ状況となり、無限ループに陥って計算が終了しない。
+
+問3
+
+動作例
+
+双方最善を尽くすと引き分けになること
+?- \+win(o,[e,e,e,e,e,e,e,e,e]).
+true.
+
+?- \+lose(o,[e,e,e,e,e,e,e,e,e]).
+true.
+
+時間の計測
+?- time(\+win(o,[e,e,e,e,e,e,e,e,e])).
+% 180,699,476 inferences, 35.262 CPU in 35.643 seconds (99% CPU, 5124455 Lips)
+true.
+
+?- time(\+lose(o,[e,e,e,e,e,e,e,e,e])).
+% 38,616,051 inferences, 7.502 CPU in 7.839 seconds (96% CPU, 5147603 Lips)
+true.
+
+先手必勝の局面
+?- win(o,[o,e,e,x,e,e,e,e,e]).
+true ;
+true ;
+true ;
+(trueは21行)
+true ;
+false.
+
+?- win(o,[e,e,e,x,o,e,e,e,e]).
+true ;
+true ;
+true ;
+(trueは41行)
+true ;
+false.
+
+?- win(o,[e,o,e,x,e,e,e,e,e]).
+true ;
+true ;
+true ;
+(trueは14行)
+true ;
+false.
+
+関連した動作例
+?- win(x,[o,e,e,x,e,e,e,e,e]).
+false.
+
+?- win(x,[e,e,e,x,o,e,e,e,e]).
+false.
+
+?- win(x,[e,o,e,x,e,e,e,e,e]).
+true ;
+true ;
+true ;
+(trueは14行)
+true ;
+false.
+スライドの先手必勝の最後の局面はxが先手でも必勝であった。
+
+?- lose(o,[o,e,e,x,e,e,e,e,e]).
+false.
+
+?- lose(o,[e,e,e,x,o,e,e,e,e]).
+false.
+
+?- lose(o,[e,o,e,x,e,e,e,e,e]).
+false.
+これら3つは正しい出力
+
+?- win(o,[e,e,e,o,o,e,x,e,x]).
+true ;
+true ;
+true ;
+true ;
+true ;
+false.
+正しい出力
+
+考察
+プレイヤーを表す記号をo,x、空白記号をe、盤面の状態を左上のマスから左から右、上から下の順に9要素のリストで表し、
+プレイヤーであることを表す一項述語player、
+盤面BにプレイヤーPのマークが三つ並んでいることを表す二項述語finish(B,P)、
+リストL中に要素Xが存在することを表すmem(X,L)とそれを利用して定義した盤面A上に空白記号eがあるかどうかを表すempty(A)、
+盤面Bの状態からプレイヤーPがマスを一つ書き換えた次の盤面がCであることを表す三項述語next(B,C,P)
+を順に定め、これらを利用して講義資料に従って
+盤面がBでPの手番ならPの必勝であることを表す二項述語win(P,B)、
+盤面がBでPの手番ならPの相手の必勝であることを表す二項述語lose(P,B)を定義した。
+講義資料のヒントに従うとlose(P,B)の定義の際にPの相手をQとして「Bから一手進めた任意の局面Cについてwin(Q,C)」
+を実装する必要があったがPrologではそのままでは「任意の」を表すことができないので、
+否定をとったヘルパー述語lose_help(B,Q,P)を「盤面Bの次の状態であって、Qの必勝ではない状態が存在する」ことを表すように定義し、
+その否定を取ることでこの述語を表現した。
+スライドの動作例は全て正しく動作し、自分で試した結果も正しかった。
+Prologの機能を用いて初期盤面が必勝であるかどうかを問い合わせた時間を計測すると
+先手については35.6秒、後手については7.8秒という結果であった。
+先手と後手の時間差は5倍であったが、この差がなぜ生じたのかは分からなかった。
+
+発展1（第十二回課題発展2と同一の内容です）
+動作例
+  let f1 = ("male",[Const "kobo"])
+  let f2 = ("male",[Const "koji"])
+  let f3 = ("male",[Const "iwao"])
+  let f4 = ("female",[Const "sanae"])
+  let f5 = ("female",[Const "mine"])
+  let f6 = ("parent",[Const "kobo";Const "koji"])
+  let f7 = ("parent",[Const "kobo";Const "sanae"])
+  let f8 = ("parent",[Const "sanae";Const "iwao"])
+  let f9 = ("parent",[Const "sanae";Const "mine"])
+  let f10 = ("ancestor",[Var 1 ;Var 2 ])
+  let f11 = ("parent",[Var 1 ;Var 2 ])
+  let f12 = ("ancestor",[Var 3 ;Var 5 ])
+  let f13 = ("parent",[Var 3 ;Var 4 ])
+  let f14 = ("ancestor",[Var 4 ;Var 5 ])
+
+  let r1 = ((f1,[]):rule)
+  let r2 = ((f2,[]):rule)
+  let r3 = ((f3,[]):rule)
+  let r4 = ((f4,[]):rule)
+  let r5 = ((f5,[]):rule)
+  let r6 = ((f6,[]):rule)
+  let r7 = ((f7,[]):rule)
+  let r8 = ((f8,[]):rule)
+  let r9 = ((f9,[]):rule)
+  let r10 = ((f10,[f11]):rule)
+  let r11 = ((f12,[f13;f14]):rule)
+  let env = [r1;r2;r3;r4;r5;r6;r7;r8;r9;r10;r11]
+  let er1 = ref env
+スライドに習い、規則を上のように定義する。
+
+utop # bfs [f1] er1;;
+true
+- : unit = ()
+
+utop # bfs [("parent",[Const "kobo" ;Var 100])] er1;;
+100=koji, 
+100=sanae, 
+- : unit = ()
+
+utop # bfs [("ancestor",[Const "kobo" ;Var 100])] er1;;
+（途中省略）
+100=mine, 1=sanae, 2=mine, 4=sanae, 3=kobo, 5=mine, 
+100=mine, 
+100=iwao, 
+100=koji, 
+4=sanae, 100=iwao, 1=sanae, 2=iwao, 3=kobo, 5=iwao, 
+100=mine, 
+100=iwao, 
+100=koji, 
+4=sanae, 100=mine, 1=sanae, 2=mine, 3=kobo, 5=mine, 
+100=mine, 
+100=iwao, 
+100=koji, 
+100=iwao, 4=sanae, 1=sanae, 2=iwao, 3=kobo, 5=iwao, 
+100=mine, 4=sanae, 1=sanae, 2=mine, 3=kobo, 5=mine, 
+100=mine, 
+100=iwao, 
+100=koji, 
+100=koji, 1=kobo, 2=koji, 
+100=sanae, 1=kobo, 2=sanae, 
+100=mine, 
+100=iwao^CInterrupted.
+全ての答えを返すが停止しない
+
+
+チャーチ数の定義
+let f15 =( ("nat" ,[Fun ("s",[Var 6])]):fact)
+let f16 =( ("nat" ,[Var 6]):fact)
+let f17 =( ("nat" ,[Const "z"]):fact)
+let r12 = ((f15,[f16]):rule)
+let r13 = ((f17,[]):rule)
+let env2 =[r12;r13]
+let env3 =[r13;r12]
+let er = ref env2
+let er3= ref env3
+
+
+bfs [("nat",[Var 100])] er
+（途中省略）
+100=s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), 
+100=s(s(s(s(s(s(z, ), ), ), ), ), ), 
+100=s(s(s(s(s(z, ), ), ), ), ), 
+100=s(s(s(s(z, ), ), ), ), 
+100=s(s(s(z, ), ), ), 
+100=s(s(z, ), ), 
+100=s(z, ), 
+100=z, 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), )^C), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+Interrupted.
+
+bfs [("nat",[Var 100])] er3
+（途中省略）
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 100=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), 
+6=s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z, ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ), ^C
+Interrupted.
+規則の順番によらず全ての答えを返すが停止しない
+
+
+第12回スライドの例
+let f18 =( ("add" ,[Const "z";Var 7;Var 7]):fact)
+let f19 =( ("add" ,[Fun ("s" ,[Var 9]);Var 10;Fun ("s" ,[Var 11])]):fact)
+let f20 =( ("add" ,[Var 9;Var 10;Var 11]):fact)
+let r14 = ((f18,[]):rule)
+let r15 = ((f19,[f20]):rule)
+
+let r16 = (( ("p",[]),[("add" ,[Fun ("s" ,[Const "z"]);Var 13;Var 13])]):rule)
+let env4 = [r14;r15;r16]
+let er4 = ref env4
+と定義
+
+utop # let _ =bfs [("p",[])] er4;;
+- : unit = ()
+出現検査を行っているため、正しくfalseという結果となる
+
+いずれの動作例も期待通りの結果が返された
+
+考察
+Ocamlを用いてProlog ライクな論理型言語を実装した。
+今回実装ではSEI-Prologとは異なり、幅優先探索をし、単一化で出現検査をしている。
+そのためプログラムの停止性は保証されないが、論理的に正しい全ての答えを返すことが保証される。
+実装は以下の通り
+
+型の定義：
+type var = int :変数の型
+type const = string　：定数の型
+type term = |Const of const | Var of var|Any(*ワイルドカード*) | List of term list|Fun of string*(term list)(*functor 名,複合項*)
+：項の型
+type fact = string*(term list)(*述語名,項*)：述語の型
+type rule = fact*(fact list)(*結論,前提*)：規則の型
+
+例外：　UError
+
+実装した関数：
+lookup_var a l：代入lから変数aに関する代入を見つける
+subst sub a：代入subと項aを受け取ってsubをaに適用
+occur_check a t：項tに変数aが現れるか検査する
+make_const l1 l2：項のリストl1,l2を受け取って成分ごとに等しいという制約を生成する
+compose s1 s2：二つの代入s1,s2を合成
+unify const：制約のmguを返す
+app_rule fact renv ：述語factを規則の集合renvの元で証明するのに必要な制約と述語を返す
+sub_fact sub (p,tl)：述語(p,tl)に代入subを適用
+make_newgoals (goals,ss) env：証明したい述語の集合と代入(goals,ss)と規則envの集合を受け取って示すべき述語の集合と代入を返す
+print_term t：項tを出力
+print_sub sub：代入subを出力
+print_fact (s,tl):fact (s,tl)を出力
+print_rule (f,fl);規則(f,fl)を出力
+goal_to_q goals q：キューq、述語と代入の組goalsの処理を行う
+add_fact goals orig env q:goalsのうち前提なしに成り立つゴールを環境envに追加し、新たな環境のもとで問い合わせのゴールorigをキューqに加える
+bfs facts env：bfsによって問い合わせfactsを処理
+getnewvar ()：新しい変数を返す
+
+実装の概略：
+ゴールと代入の組をキューに加えて、先頭の要素から今の環境（規則の集合）のもとで示すべき新たなゴールと代入を作り、キューに加える動作を繰り返すことで
+幅優先探索を実装した。
+規則の集合にない述語が証明された場合には、その述語を環境に加え、その環境の元でもう一度問い合わせのゴールの証明を試みるようにした。
+環境は更新する必要があるので規則の集合の参照として実装した。
+キューの実装はOcamlのQueueモジュールを用いて実装した。
+関数bfsに規則の集合env、示したい述語の集合factsを与えると真の場合には代入または空の代入を表すtrueを返す。
+変数の割当を見ることができるように問い合わせには含まれない、規則に含まれる変数の代入も出力される仕様にした。
+また代入なしに成り立つ場合にはtrueが返され、falseの場合には何も返されない。
+
+動作例のように試した限りでは期待した通りの結果が出力された。
